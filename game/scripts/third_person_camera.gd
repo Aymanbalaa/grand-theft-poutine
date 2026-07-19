@@ -6,11 +6,10 @@ extends Node3D
 var _yaw := 0.0
 var _pitch := -0.2
 @onready var _player := get_parent() as Player
-
-func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+@onready var _cam := $SpringArm3D/PlayerCamera as Camera3D
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not _cam.current: return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_yaw -= event.relative.x * sensitivity
 		_pitch = clampf(_pitch - event.relative.y * sensitivity, -1.2, 0.5)

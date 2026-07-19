@@ -15,6 +15,7 @@ func _ready() -> void:
 			sz = meta["spawn"]["z"]
 	_player.global_position = Vector3(sx, 80.0, sz)
 	(_player.get_node("CamPivot/SpringArm3D/PlayerCamera") as Camera3D).current = true
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_fly"):
@@ -23,3 +24,4 @@ func _unhandled_input(event: InputEvent) -> void:
 			_fly_cam.current = true
 		else:
 			pc.current = true
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

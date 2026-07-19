@@ -8,6 +8,7 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not current: return
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		rotate_y(-event.relative.x * MOUSE_SENS)
 		rotate_object_local(Vector3.RIGHT, -event.relative.y * MOUSE_SENS)
@@ -16,6 +17,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
 
 func _process(delta: float) -> void:
+	if not current: return
 	var dir := Vector3.ZERO
 	if Input.is_physical_key_pressed(KEY_W): dir -= transform.basis.z
 	if Input.is_physical_key_pressed(KEY_S): dir += transform.basis.z
