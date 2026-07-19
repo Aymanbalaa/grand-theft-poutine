@@ -1,5 +1,7 @@
+import json
 import numpy as np
-from pipeline.terrain import Heightmap, synthetic_heightmap
+import pipeline.terrain as terrain
+from pipeline.terrain import Heightmap, fetch_heightmap, synthetic_heightmap
 
 def test_sample_bilinear_and_clamp():
     hm = Heightmap(grid=np.array([[0.0, 10.0], [20.0, 30.0]], dtype=np.float32),
@@ -24,3 +26,26 @@ def test_save_load_roundtrip(tmp_path):
     hm2 = Heightmap.load(tmp_path / "h.npy", tmp_path / "h.json")
     assert np.array_equal(hm.grid, hm2.grid)
     assert hm2.sample(100.0, 100.0) == hm.sample(100.0, 100.0)
+
+def test_fetch_falls_back_to_synthetic(monkeypatch, tmp_path):
+    def _boom():
+        raise RuntimeError("down")
+    monkeypatch.setattr(terrain, "_fetch_hrdem", _boom)
+    npy_path, meta_path = tmp_path / "h.npy", tmp_path / "h.json"
+    hm = fetch_heightmap(npy_path, meta_path)
+    assert np.array_equal(hm.grid, synthetic_heightmap().grid)
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    assert meta["source"] == "synthetic"
+
+def test_fetch_uses_cache(monkeypatch, tmp_path):
+    def _boom():
+        raise RuntimeError("down")
+    monkeypatch.setattr(terrain, "_fetch_hrdem", _boom)
+    npy_path, meta_path = tmp_path / "h.npy", tmp_path / "h.json"
+    hm1 = fetch_heightmap(npy_path, meta_path)
+
+    def _must_not_be_called():
+        raise AssertionError("should not be called")
+    monkeypatch.setattr(terrain, "_fetch_hrdem", _must_not_be_called)
+    hm2 = fetch_heightmap(npy_path, meta_path)
+    assert np.array_equal(hm1.grid, hm2.grid)
