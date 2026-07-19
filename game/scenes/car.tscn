@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/car.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/car_visual.gd" id="2"]
 
 [sub_resource type="BoxShape3D" id="box"]
 size = Vector3(1.9, 1.1, 4.3)
@@ -13,3 +14,4 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
 shape = SubResource("box")
 
 [node name="Visual" type="Node3D" parent="."]
+script = ExtResource("2")
