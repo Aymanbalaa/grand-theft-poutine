@@ -1,0 +1,34 @@
+import json
+from pathlib import Path
+from pipeline.osm_parse import parse_osm
+from pipeline.tiler import assign_tile, build_tiles
+from pipeline.export import export_city
+
+FIX = Path(__file__).parent / "fixtures" / "mini.osm.xml"
+
+def test_assign_tile():
+    assert assign_tile(0.0, 0.0) == (0, 0)
+    assert assign_tile(-0.1, 300.0) == (-1, 1)
+
+def test_build_tiles_has_categories():
+    city = parse_osm(FIX)
+    tiles = build_tiles(city)
+    assert len(tiles) >= 1
+    names = {n for scene in tiles.values() for n in scene.geometry}
+    assert "buildings" in names and "roads" in names
+
+def test_export_writes_glb_and_metadata(tmp_path):
+    city = parse_osm(FIX)
+    meta = export_city(city, tmp_path)
+    files = sorted(p.name for p in tmp_path.glob("*.glb"))
+    assert files == sorted(t["file"] for t in meta["tiles"])
+    assert (tmp_path / "city_metadata.json").exists()
+    assert any(s["name"] == "Rue Sainte-Catherine" for s in meta["streets"])
+
+def test_export_deterministic(tmp_path):
+    city = parse_osm(FIX)
+    export_city(city, tmp_path / "a")
+    export_city(city, tmp_path / "b")
+    ja = (tmp_path / "a" / "city_metadata.json").read_bytes()
+    jb = (tmp_path / "b" / "city_metadata.json").read_bytes()
+    assert ja == jb
