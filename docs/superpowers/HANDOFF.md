@@ -1,29 +1,28 @@
 # Session Handoff — read me first in a fresh context
 
-**Project:** MTL: Open Île — GTA-like free-roam downtown Montreal. Spec: `docs/superpowers/specs/2026-07-18-montreal-open-world-design.md` (milestone order updated 2026-07-19: visuals now come BEFORE character).
+**Project:** MTL: Open Île — GTA-like free-roam downtown Montreal. Spec: `docs/superpowers/specs/2026-07-18-montreal-open-world-design.md`.
 
-**State (2026-07-19, tag `m2-gray-city`):** Milestones 1–2 complete. Flyable gray city over real downtown OSM data: 255 glTF tiles in `game/world/` (255 load in smoke test), 18 pytest green. Plan 1 executed via superpowers:subagent-driven-development; per-task ledger at `.superpowers/sdd/progress.md` (gitignored), all reviews clean.
+**State (2026-07-19, tag `m3-montreal`):** Milestones 1–3 complete. The city is now recognizably Montreal: stylized palette baked as vertex colors (brick residential, glass commercial, greystone churches), St. Lawrence river + relation-based parks via multipolygon support, Mont Royal terrain from a REAL HRDEM heightmap (NRCan STAC fetch worked; synthetic fallback exists), five procedural hero landmarks at OSM-verified coordinates (PVM, Notre-Dame, Biosphère, Habitat 67, Five Roses), day/night cycle (T fast-forwards), minimap HUD with camera marker. 314 tiles, 45 pytest green, smoke prints `SMOKE OK: 314 tiles`. Milestone screenshots at `docs/screenshots/m3_*.png` (reviewed visually). Plan 2 executed via superpowers:subagent-driven-development; ledger at `.superpowers/sdd/progress.md` (gitignored).
 
-**Next up — Plan 2 "Make it Montreal" (visual pass), to be written with superpowers:writing-plans:**
-- Stylized palette: color buildings by type/district, roads by class, water blue, parks green (pipeline currently exports colorless meshes → renders white; carry OSM tags into materials in `pipeline/meshes.py`/`tiler.py`, vertex colors or per-category materials in the GLB)
-- St. Lawrence river needs Overpass multipolygon RELATION support (only way-based water is fetched today — the river body is missing)
-- Hero landmarks at true coords: Notre-Dame, Place Ville Marie, Biosphere, Habitat 67, Farine Five Roses (Sketchfab CC0/CC-BY, verify license per model)
-- Mont Royal terrain from HRDEM heightmap (currently flat y=0)
-- Day/night cycle, minimap (road-graph render)
+**Next up — Plan 3 "On foot" (M4), to be written with superpowers:writing-plans:**
+- Third-person CharacterBody3D controller (walk/sprint/jump), collision-aware follow camera (Quaternius/Mixamo character)
+- Collisions for buildings/terrain (tiles currently have no collision shapes — generate trimesh collision in pipeline or Godot import settings)
+- Street-name + district HUD (point-in-polygon vs metadata) — FIRST dedupe `streets` metadata (7,357 per-way fragments, ~2 MB; dedupe by name / split per district) and consume or drop the unused `spawn` field
+- Spawn on foot downtown instead of fly cam (keep fly cam as debug toggle)
 
 **Carry-forward review findings (fix when touching the relevant code):**
-- `pipeline/download.py`: sanity-check 200 responses start with `<?xml` before caching; don't sleep after final failed attempt
-- `pipeline/tiler.py`: MAX_TILE_TRIS `assert` → `raise` (assert dies under `python -O`); no test that it fires
-- `pipeline/osm_parse.py`: ring-closure checks raw refs but drops unresolved nodes silently — guard when reworking for multipolygons
-- Metadata `streets` = 7,352 per-way fragments (not deduped by name), 2.1 MB JSON — dedupe/split before the street-name HUD (now M4); `spawn` field is produced but unconsumed (consume in M4 or drop)
 - Fly cam Esc mouse-release never manually tested; tile visibility toggling has no automated test
+- minimap.gd: metadata sub-key indexing unguarded, silent failure paths (plan-mandated simplicity)
+- terrain_tile_mesh: 33×33 Python loop per tile unvectorized (offline-only cost); water/green terrain coloring path untested
+- geo constants duplicated in terrain.py (`110574.0`/`111320.0` vs geo.py canonical)
+- Final whole-branch review for Plan 2: see ledger FINAL entry for any accepted-risk items
 
 **Hard constraints (user-mandated):**
-- Commits authored ONLY by Aymanbalaa via repo-local git config (noreply email) — NO Co-Authored-By/AI trailers ever. History was rewritten once to scrub a gmail leak; don't reintroduce.
-- Commit small and frequent. User has cheaper-model subagents in mind for mechanical work — orchestrate, review everything.
+- Commits authored ONLY by Aymanbalaa via repo-local git config (noreply email) — NO Co-Authored-By/AI trailers ever. History was rewritten once to scrub a gmail leak; don't reintroduce. KNOWN RISK: one subagent passed `--author` with the gmail address (caught + amended before it left the machine) — every subagent dispatch must explicitly forbid `--author` and git-config changes.
+- Commit small and frequent. Cheaper-model subagents for mechanical work — orchestrate, review everything.
 
 **Environment gotchas:**
-- `tools/godot/godot.exe` (gitignored) is the MAIN Godot 4.5 binary (console wrapper refuses renaming). Headless: `tools/godot/godot.exe --headless --path game --script res://tests/smoke_test.gd` → expect "SMOKE OK: 255 tiles". After regenerating world tiles run `--headless --path game --import` first (minutes).
-- Screenshots: `tools/godot/godot.exe --path game --script res://tests/screenshot.gd` (windowed, needs GPU) → PNGs in `%APPDATA%/Godot/app_userdata/MTL Open Ile/`. ALWAYS look at them (Read tool) before claiming visual success.
-- Python: `.venv/Scripts/python -m pytest pipeline -q`; full rebuild `.venv/Scripts/python -m pipeline.build` (Overpass download cached at `data/osm_downtown.osm.xml`, mirror rotation built in).
-- Overpass instances are flaky; the download is cached — don't re-trigger needlessly.
+- `tools/godot/godot.exe` is the MAIN Godot 4.5 binary; `tools/godot/godot_console.exe` is the console wrapper — USE THE CONSOLE WRAPPER from PowerShell, the GUI exe detaches and returns no output. Headless smoke: `tools/godot/godot_console.exe --headless --path game --script res://tests/smoke_test.gd` → expect "SMOKE OK: 314 tiles". After regenerating world tiles run `--headless --path game --import` first (minutes).
+- Screenshots: `tools/godot/godot_console.exe --path game --script res://tests/screenshot.gd` (windowed, needs GPU) → PNGs in `%APPDATA%/Godot/app_userdata/MTL Open Ile/`. ALWAYS look at them (Read tool) before claiming visual success. 5 poses: overview/street/oldport/mountain/biosphere.
+- Python: `.venv/Scripts/python -m pytest pipeline -q`; full rebuild `.venv/Scripts/python -m pipeline.build` (OSM + heightmap both cached in `data/`; delete caches ONLY if the query/source changes).
+- Overpass mirrors flaky (rotation built in); HRDEM via NRCan STAC can fail → synthetic fallback auto-engages (check console line "heightmap saved (hrdem|synthetic)").
