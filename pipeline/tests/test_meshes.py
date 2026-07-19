@@ -48,3 +48,10 @@ def test_road_and_area_colors():
     assert tuple(r.visual.vertex_colors[0][:3]) == config.ROAD_COLORS["footway"]
     w = area_mesh(Area(5, "water", SQ))
     assert tuple(w.visual.vertex_colors[0][:3]) == config.AREA_COLORS["water"]
+
+def test_area_mesh_with_hole_has_fewer_area():
+    from shapely.geometry import Polygon
+    full = area_mesh(Area(6, "water", SQ))
+    hole = [(4.0, 4.0), (6.0, 4.0), (6.0, 6.0), (4.0, 6.0)]
+    holed = area_mesh(Area(7, "water", SQ, [hole]))
+    assert holed is not None and holed.area < full.area

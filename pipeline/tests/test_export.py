@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
-from pipeline.osm_parse import parse_osm
+import pytest
+from pipeline import config
+from pipeline.osm_parse import parse_osm, Area
 from pipeline.tiler import assign_tile, build_tiles
 from pipeline.export import export_city
 
@@ -32,3 +34,17 @@ def test_export_deterministic(tmp_path):
     ja = (tmp_path / "a" / "city_metadata.json").read_bytes()
     jb = (tmp_path / "b" / "city_metadata.json").read_bytes()
     assert ja == jb
+
+def test_big_area_clipped_across_tiles():
+    big = Area(1, "water", [(-10.0, -10.0), (500.0, -10.0), (500.0, 500.0), (-10.0, 500.0)])
+    from pipeline.osm_parse import CityData
+    tiles = build_tiles(CityData(areas=[big]))
+    assert len(tiles) >= 4  # spans tiles (-1..1, -1..1)
+    for scene in tiles.values():
+        assert "areas" in scene.geometry
+
+def test_tile_budget_raises(monkeypatch):
+    monkeypatch.setattr(config, "MAX_TILE_TRIS", 1)
+    city = parse_osm(FIX)
+    with pytest.raises(ValueError, match="over budget"):
+        build_tiles(city)

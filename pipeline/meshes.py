@@ -72,15 +72,22 @@ def road_mesh(r: Road) -> trimesh.Trimesh | None:
     mesh = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
     return _paint(mesh, config.ROAD_COLORS.get(r.road_class, config.DEFAULT_ROAD_COLOR))
 
+def area_piece_mesh(geom, kind: str, y: float = 0.02) -> trimesh.Trimesh | None:
+    polys = [g for g in getattr(geom, "geoms", [geom])
+             if g.geom_type == "Polygon" and not g.is_empty and g.area >= 1.0]
+    parts = []
+    for p in polys:
+        v2d, faces = triangulate_polygon(p)
+        verts = np.column_stack([v2d[:, 0], np.full(len(v2d), y), v2d[:, 1]])
+        parts.append(trimesh.Trimesh(vertices=verts, faces=faces, process=False))
+    if not parts:
+        return None
+    return _paint(trimesh.util.concatenate(parts), config.AREA_COLORS[kind])
+
 def area_mesh(a: Area) -> trimesh.Trimesh | None:
     if len(a.outline) < 3:
         return None
-    poly = Polygon(a.outline)
+    poly = Polygon(a.outline, a.holes)
     if not poly.is_valid:
         poly = poly.buffer(0)
-    if poly.is_empty or poly.area < 1.0 or poly.geom_type != "Polygon":
-        return None
-    v2d, faces = triangulate_polygon(poly)
-    verts = np.column_stack([v2d[:, 0], np.full(len(v2d), 0.02), v2d[:, 1]])
-    mesh = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
-    return _paint(mesh, config.AREA_COLORS[a.kind])
+    return area_piece_mesh(poly, a.kind)
