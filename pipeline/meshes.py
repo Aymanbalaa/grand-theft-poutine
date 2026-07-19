@@ -22,6 +22,8 @@ def _to_yup(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     return mesh
 
 def building_mesh(b: Building) -> trimesh.Trimesh | None:
+    if len(b.footprint) < 3 or b.height <= 0:
+        return None
     poly = Polygon(b.footprint)
     if not poly.is_valid:
         poly = poly.buffer(0)
@@ -30,6 +32,8 @@ def building_mesh(b: Building) -> trimesh.Trimesh | None:
     return _to_yup(extrude_polygon(poly, b.height))
 
 def road_mesh(r: Road) -> trimesh.Trimesh | None:
+    if len(r.points) < 2 or r.width <= 0:
+        return None
     line = LineString(r.points)
     if line.length < 1.0:
         return None
@@ -52,6 +56,8 @@ def road_mesh(r: Road) -> trimesh.Trimesh | None:
     return trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
 
 def area_mesh(a: Area) -> trimesh.Trimesh | None:
+    if len(a.outline) < 3:
+        return None
     poly = Polygon(a.outline)
     if not poly.is_valid:
         poly = poly.buffer(0)

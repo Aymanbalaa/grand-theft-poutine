@@ -25,3 +25,11 @@ def test_area_mesh_flat():
     m = area_mesh(Area(4, "water", SQ))
     lo, hi = m.bounds
     assert abs(hi[1] - lo[1]) < 1e-6
+
+def test_malformed_inputs_return_none_never_raise():
+    assert building_mesh(Building(10, [(0, 0), (1, 1)], 10.0)) is None
+    assert building_mesh(Building(11, SQ, 0.0)) is None
+    assert building_mesh(Building(12, SQ, -3.0)) is None
+    assert road_mesh(Road(13, "x", [(0.0, 0.0)], 8.0)) is None
+    assert road_mesh(Road(14, "x", [(0.0, 0.0), (100.0, 0.0)], 0.0)) is None
+    assert area_mesh(Area(15, "water", [(0.0, 0.0), (1.0, 1.0)])) is None
