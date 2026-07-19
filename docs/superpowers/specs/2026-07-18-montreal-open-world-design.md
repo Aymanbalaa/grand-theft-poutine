@@ -67,11 +67,13 @@ Hand-placed at true coordinates, replacing the auto-generated geometry at their 
 
 ## Milestones
 
-1. **Repo + scaffold** — git repo, Godot project boots, pipeline skeleton runs end-to-end on a stub
-2. **Gray city** — real downtown roads + extruded blocks render in Godot, fly-cam
-3. **On foot** — walkable streets, collisions, street-name HUD
-4. **Behind the wheel** — drivable car, enter/exit, camera, speedometer
-5. **Make it Montreal** — palette, landmarks, water/parks, Mont Royal terrain, minimap, day/night
+*(Reordered 2026-07-19 per user decision: visuals before character — a recognizable city first.)*
+
+1. **Repo + scaffold** — git repo, Godot project boots, pipeline skeleton runs end-to-end on a stub ✅ (tag m2-gray-city)
+2. **Gray city** — real downtown roads + extruded blocks render in Godot, fly-cam ✅ (tag m2-gray-city)
+3. **Make it Montreal** — palette, landmarks, water/parks, Mont Royal terrain, minimap, day/night
+4. **On foot** — walkable streets, collisions, street-name HUD
+5. **Behind the wheel** — drivable car, enter/exit, camera, speedometer
 6. **Polish** — audio, tuning, credits/attribution screen (OSM ODbL + Montreal CC-BY + asset credits)
 
 ## Repo layout
