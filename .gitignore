@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+data/
+tools/
+game/.godot/
+*.import
+.pytest_cache/
+.superpowers/
