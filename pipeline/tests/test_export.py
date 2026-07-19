@@ -17,7 +17,7 @@ def test_build_tiles_has_categories():
     tiles = build_tiles(city)
     assert len(tiles) >= 1
     names = {n for scene in tiles.values() for n in scene.geometry}
-    assert "buildings" in names and "roads" in names
+    assert "buildings" in names and "roads" in names and "water" in names
 
 def test_export_writes_glb_and_metadata(tmp_path):
     city = parse_osm(FIX)
@@ -41,7 +41,7 @@ def test_big_area_clipped_across_tiles():
     tiles = build_tiles(CityData(areas=[big]))
     assert len(tiles) >= 4  # spans tiles (-1..1, -1..1)
     for scene in tiles.values():
-        assert "areas" in scene.geometry
+        assert "water" in scene.geometry
 
 def test_tile_budget_raises(monkeypatch):
     monkeypatch.setattr(config, "MAX_TILE_TRIS", 1)

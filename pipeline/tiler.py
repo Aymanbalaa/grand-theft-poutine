@@ -62,7 +62,7 @@ def build_tiles(city: CityData, hm=None) -> dict[tuple[int, int], trimesh.Scene]
                                (tx + 1) * config.TILE_SIZE, (tz + 1) * config.TILE_SIZE)
                 m = area_piece_mesh(poly.intersection(cell), a.kind, flat_y=flat_y)
                 if m is not None:
-                    buckets[(tx, tz)]["areas"].append(m)
+                    buckets[(tx, tz)][a.kind].append(m)
 
     water_geom = green_geom = None
     keys = set(buckets)
@@ -75,7 +75,7 @@ def build_tiles(city: CityData, hm=None) -> dict[tuple[int, int], trimesh.Scene]
     for key in sorted(keys):
         scene = trimesh.Scene()
         total_tris = 0
-        for cat in ("buildings", "roads", "areas"):
+        for cat in ("buildings", "roads", "water", "green"):
             if buckets[key][cat]:
                 merged = trimesh.util.concatenate(buckets[key][cat])
                 total_tris += len(merged.faces)
