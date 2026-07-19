@@ -71,7 +71,8 @@ Hand-placed at true coordinates, replacing the auto-generated geometry at their 
 
 1. **Repo + scaffold** — git repo, Godot project boots, pipeline skeleton runs end-to-end on a stub ✅ (tag m2-gray-city)
 2. **Gray city** — real downtown roads + extruded blocks render in Godot, fly-cam ✅ (tag m2-gray-city)
-3. **Make it Montreal** — palette, landmarks, water/parks, Mont Royal terrain, minimap, day/night
+3. **Make it Montreal** — palette, landmarks, water/parks, Mont Royal terrain, minimap, day/night ✅ (tag m3-montreal)
+3.5. **WOW pass** *(added 2026-07-19 per user: "better graphics, more detailed, make someone say WOW")* — emissive window grids that light up at night, procedural sky with sun disc + SSAO + glow + ACES tonemap, street trees & lamps from OSM node data, animated water shader, roof caps/gables
 4. **On foot** — walkable streets, collisions, street-name HUD
 5. **Behind the wheel** — drivable car, enter/exit, camera, speedometer
 6. **Polish** — audio, tuning, credits/attribution screen (OSM ODbL + Montreal CC-BY + asset credits)
