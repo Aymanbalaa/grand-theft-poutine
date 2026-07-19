@@ -25,16 +25,18 @@ func _init() -> void:
 		push_error("FAIL: Camera3D node named 'Camera' missing from main scene")
 		quit(1)
 		return
-	var player_scene: PackedScene = load("res://scenes/player.tscn")
-	if player_scene == null:
-		push_error("FAIL: player.tscn did not load")
+	var player := root.get_node_or_null("Player")
+	if player == null:
+		push_error("FAIL: Player missing from main scene")
 		quit(1)
 		return
-	var player = player_scene.instantiate()
-	get_root().add_child(player)
-	await process_frame
 	if not InputMap.has_action("move_forward") or not InputMap.has_action("toggle_fly"):
 		push_error("FAIL: player input actions not registered")
+		quit(1)
+		return
+	var pcam := player.get_node("CamPivot/SpringArm3D/PlayerCamera") as Camera3D
+	if pcam == null or not pcam.current:
+		push_error("FAIL: player camera missing or not current")
 		quit(1)
 		return
 	print("PLAYER OK")
