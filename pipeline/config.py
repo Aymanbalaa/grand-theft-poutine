@@ -78,3 +78,16 @@ TREE_CANOPY_COLORS = ((58, 110, 52), (74, 124, 58))
 TREE_TRUNK_COLOR = (92, 64, 40)
 LAMP_POLE_COLOR = (70, 72, 76)
 LAMP_HEAD_COLOR = (255, 214, 130)
+
+# --- Street-name HUD ---
+STREET_GRID_CELL = 64.0
+# Rough district boxes (s, w, n, e); first match wins, specific before general.
+DISTRICTS = [
+    {"name": "Vieux-Montréal",           "box": (45.5025, -73.5620, 45.5125, -73.5495)},
+    {"name": "Vieux-Port",               "box": (45.4980, -73.5560, 45.5090, -73.5430)},
+    {"name": "Quartier des Spectacles",  "box": (45.5055, -73.5700, 45.5125, -73.5620)},
+    {"name": "Milton-Parc",              "box": (45.5055, -73.5820, 45.5200, -73.5700)},
+    {"name": "Griffintown",              "box": (45.4880, -73.5745, 45.4930, -73.5530)},
+    {"name": "Parc Jean-Drapeau",        "box": (45.5010, -73.5430, 45.5200, -73.5250)},
+    {"name": "Centre-Ville",             "box": (45.4880, -73.5820, 45.5055, -73.5430)},
+]

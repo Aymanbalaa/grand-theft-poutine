@@ -8,6 +8,7 @@ from pipeline.geo import latlon_to_xz
 from pipeline.landmarks import export_landmarks
 from pipeline.minimap import render_minimap
 from pipeline.osm_parse import CityData
+from pipeline.streets import build_street_grid, district_polys
 from pipeline.tiler import build_tiles
 
 def _without_landmark_buildings(city: CityData) -> CityData:
@@ -29,13 +30,6 @@ def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
         fname = f"tile_{tx}_{tz}.glb"
         scene.export(out / fname)
         tile_entries.append({"tx": tx, "tz": tz, "file": fname})
-    streets = sorted(
-        (
-            {"name": r.name, "points": [[round(x, 2), round(z, 2)] for x, z in r.points]}
-            for r in city.roads if r.name
-        ),
-        key=lambda s: (s["name"], s["points"][0]),
-    )
     landmark_entries = export_landmarks(out, hm)
     meta = {
         "minimap": render_minimap(city, out / "minimap.png"),
@@ -43,7 +37,8 @@ def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
         "tile_size": config.TILE_SIZE,
         "tiles": tile_entries,
         "spawn": {"x": 0.0, "z": 0.0},
-        "streets": streets,
+        "streets": build_street_grid(city.roads),
+        "districts": district_polys(),
         "landmarks": landmark_entries,
     }
     (out / "city_metadata.json").write_text(

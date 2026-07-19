@@ -25,7 +25,9 @@ def test_export_writes_glb_and_metadata(tmp_path):
     files = sorted(p.name for p in tmp_path.glob("*.glb"))
     assert files == sorted(t["file"] for t in meta["tiles"])
     assert (tmp_path / "city_metadata.json").exists()
-    assert any(s["name"] == "Rue Sainte-Catherine" for s in meta["streets"])
+    assert "Rue Sainte-Catherine" in meta["streets"]["names"]
+    assert meta["streets"]["cell"] == 64.0
+    assert len(meta["districts"]) == 7
 
 def test_export_deterministic(tmp_path):
     city = parse_osm(FIX)
