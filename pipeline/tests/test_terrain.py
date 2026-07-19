@@ -38,14 +38,14 @@ def test_fetch_falls_back_to_synthetic(monkeypatch, tmp_path):
     assert meta["source"] == "synthetic"
 
 def test_fetch_uses_cache(monkeypatch, tmp_path):
+    calls = {"n": 0}
     def _boom():
+        calls["n"] += 1
         raise RuntimeError("down")
     monkeypatch.setattr(terrain, "_fetch_hrdem", _boom)
     npy_path, meta_path = tmp_path / "h.npy", tmp_path / "h.json"
     hm1 = fetch_heightmap(npy_path, meta_path)
-
-    def _must_not_be_called():
-        raise AssertionError("should not be called")
-    monkeypatch.setattr(terrain, "_fetch_hrdem", _must_not_be_called)
+    assert calls["n"] == 1
     hm2 = fetch_heightmap(npy_path, meta_path)
+    assert calls["n"] == 1          # not called again on cache hit
     assert np.array_equal(hm1.grid, hm2.grid)
