@@ -2,7 +2,9 @@ extends Node3D
 class_name TileLoader
 
 @export var view_distance := 800.0
+const COLLISION_RADIUS := 280.0
 var _tiles: Array[Dictionary] = []   # {node: Node3D, center: Vector3}
+var _collision: Dictionary = {}  # Node3D -> StaticBody3D
 var _tile_size := 256.0
 var _camera: Camera3D
 var _city_mat := _make_city_material()
@@ -77,6 +79,31 @@ func _process(_delta: float) -> void:
 		var center: Vector3 = t["center"]
 		var visible_now: bool = Vector2(center.x, center.z).distance_to(cam_xz) < view_distance + _tile_size
 		(t["node"] as Node3D).visible = visible_now
+	for t in _tiles:
+		var center: Vector3 = t["center"]
+		var near: bool = Vector2(center.x, center.z).distance_to(cam_xz) < COLLISION_RADIUS
+		var node := t["node"] as Node3D
+		if near and not _collision.has(node):
+			_collision[node] = _build_collision(node)
+		elif not near and _collision.has(node):
+			(_collision[node] as StaticBody3D).queue_free()
+			_collision.erase(node)
+
+func _build_collision(tile: Node3D) -> StaticBody3D:
+	var body := StaticBody3D.new()
+	for mi in tile.find_children("*", "MeshInstance3D", true, false):
+		var inst := mi as MeshInstance3D
+		var n := inst.name.to_lower()
+		if n.begins_with("water") or n.begins_with("props"):
+			continue
+		var shape := inst.mesh.create_trimesh_shape()
+		if shape == null:
+			continue
+		var cs := CollisionShape3D.new()
+		cs.shape = shape
+		body.add_child(cs)
+	tile.add_child(body)
+	return body
 
 func loaded_tile_count() -> int:
 	return _tiles.size()

@@ -40,5 +40,17 @@ func _init() -> void:
 		quit(1)
 		return
 	print("PLAYER OK")
+	var landed := false
+	for i in 900:
+		await process_frame
+		if player.is_on_floor():
+			landed = true
+			break
+	if not landed or player.global_position.y < -5.0:
+		push_error("FAIL: player did not land (y=%f, vy=%f)"
+				% [player.global_position.y, player.velocity.y])
+		quit(1)
+		return
+	print("LANDED OK y=%.1f" % player.global_position.y)
 	print("SMOKE OK: %d tiles" % loader.loaded_tile_count())
 	quit(0)
