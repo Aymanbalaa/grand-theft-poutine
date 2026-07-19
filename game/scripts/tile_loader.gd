@@ -41,6 +41,14 @@ func _ready() -> void:
 		var cx := (float(t["tx"]) + 0.5) * _tile_size
 		var cz := (float(t["tz"]) + 0.5) * _tile_size
 		_tiles.append({"node": node, "center": Vector3(cx, 0.0, cz)})
+	for lm in meta.get("landmarks", []):
+		var lm_scene := load("res://world/%s" % lm["file"]) as PackedScene
+		if lm_scene == null:
+			push_warning("missing landmark: " + str(lm["file"]))
+			continue
+		var lm_node := lm_scene.instantiate() as Node3D
+		add_child(lm_node)
+		_apply_city_material(lm_node)
 
 func _process(_delta: float) -> void:
 	if _camera == null:

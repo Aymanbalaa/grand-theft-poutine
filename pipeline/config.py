@@ -54,3 +54,19 @@ TERRAIN_COLOR_BLEND = (25.0, 90.0)    # y-range over which low blends to high
 TERRAIN_WATER_DROP = 3.0      # terrain depression under water polygons (m)
 TERRAIN_WATER_COLOR = (52, 84, 104)
 MONT_ROYAL_SUMMIT = (45.5063, -73.5872)  # just west of bbox; east flank is in-map
+
+# --- Hero landmarks (true coords; clear = radius m of auto-buildings removed) ---
+# Coordinates verified against data/osm_downtown.osm.xml (Task 8 Step 1):
+#   pvm, notre_dame: brief defaults confirmed within ~0.0005 deg of OSM centroids
+#     (pvm: unnamed building height=188.1m at 45.5016,-73.56866 matches PVM's tower height;
+#      notre_dame: "Basilique Notre-Dame" at 45.50447,-73.55622).
+#   biosphere, habitat67: replaced with OSM centroids (differed >0.0005 deg from brief defaults):
+#     "Biosphère" way centroid 45.51411,-73.53146; "Habitat '67" way centroid 45.49987,-73.54365.
+#   five_roses: no OSM match for "Five Roses"/"Farine" in the cached extract; brief default kept.
+LANDMARKS = [
+    {"key": "pvm",        "name": "Place Ville Marie",      "lat": 45.5017, "lon": -73.5685, "clear": 70},
+    {"key": "notre_dame", "name": "Basilique Notre-Dame",   "lat": 45.5045, "lon": -73.5562, "clear": 55},
+    {"key": "biosphere",  "name": "Biosphère",              "lat": 45.51411, "lon": -73.53146, "clear": 55},
+    {"key": "habitat67",  "name": "Habitat 67",             "lat": 45.49987, "lon": -73.54365, "clear": 90},
+    {"key": "five_roses", "name": "Farine Five Roses",      "lat": 45.4922, "lon": -73.5545, "clear": 60},
+]
