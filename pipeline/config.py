@@ -1,5 +1,7 @@
 # Map bounding box (south, west, north, east) — downtown core + Old Port + Habitat 67 + Biosphere
 BBOX = (45.488, -73.582, 45.520, -73.525)
+# Padding (meters) applied when clipping multipolygon relations to the bbox
+BBOX_PAD_M = 100.0
 # Local origin (lat, lon) — near Place Ville Marie
 ORIGIN = (45.504, -73.5535)
 TILE_SIZE = 256.0

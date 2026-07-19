@@ -29,6 +29,10 @@ def _query() -> str:
   way["waterway"="riverbank"]({bbox});
   way["leisure"~"park|garden"]({bbox});
   way["landuse"~"grass|forest|recreation_ground"]({bbox});
+  relation["natural"="water"]({bbox});
+  relation["waterway"="riverbank"]({bbox});
+  relation["leisure"~"park|garden"]({bbox});
+  relation["landuse"~"grass|forest|recreation_ground"]({bbox});
 );
 (._;>;);
 out body;
@@ -47,10 +51,13 @@ def fetch_osm(dest: str | Path = "data/osm_downtown.osm.xml") -> Path:
         try:
             resp = requests.post(url, data={"data": _query()}, headers=HEADERS, timeout=600)
             resp.raise_for_status()
-        except requests.RequestException as exc:
+            if not resp.content.lstrip().startswith(b"<?xml"):
+                raise RuntimeError(f"non-XML response: {resp.content[:80]!r}")
+        except (requests.RequestException, RuntimeError) as exc:
             print(f"  failed: {exc}")
             last_error = exc
-            time.sleep(10 * (attempt + 1))
+            if attempt < 5:
+                time.sleep(10 * (attempt + 1))
             continue
         dest.write_bytes(resp.content)
         print(f"saved {len(resp.content) / 1e6:.1f} MB -> {dest}")
