@@ -2,7 +2,7 @@
 
 **Project:** MTL: Open Île — GTA-like free-roam downtown Montreal. Spec: `docs/superpowers/specs/2026-07-18-montreal-open-world-design.md`.
 
-**State (2026-07-19, tag `m3-montreal`):** Milestones 1–3 complete. The city is now recognizably Montreal: stylized palette baked as vertex colors (brick residential, glass commercial, greystone churches), St. Lawrence river + relation-based parks via multipolygon support, Mont Royal terrain from a REAL HRDEM heightmap (NRCan STAC fetch worked; synthetic fallback exists), five procedural hero landmarks at OSM-verified coordinates (PVM, Notre-Dame, Biosphère, Habitat 67, Five Roses), day/night cycle (T fast-forwards), minimap HUD with camera marker. 314 tiles, 45 pytest green, smoke prints `SMOKE OK: 314 tiles`. Milestone screenshots at `docs/screenshots/m3_*.png` (reviewed visually). Plan 2 executed via superpowers:subagent-driven-development; ledger at `.superpowers/sdd/progress.md` (gitignored).
+**State (2026-07-19, tag `m3-montreal`):** Milestones 1–3 complete. The city is now recognizably Montreal: stylized palette baked as vertex colors (brick residential, glass commercial, greystone churches), St. Lawrence river + relation-based parks via multipolygon support, Mont Royal terrain from a REAL HRDEM heightmap (NRCan STAC fetch worked; synthetic fallback exists), five procedural hero landmarks (coords OSM-verified except Five Roses — no OSM name match, brief default kept) (PVM, Notre-Dame, Biosphère, Habitat 67, Five Roses), day/night cycle (T fast-forwards), minimap HUD with camera marker. 314 tiles, 45 pytest green, smoke prints `SMOKE OK: 314 tiles`. Milestone screenshots at `docs/screenshots/m3_*.png` (reviewed visually). Plan 2 executed via superpowers:subagent-driven-development; ledger at `.superpowers/sdd/progress.md` (gitignored).
 
 **Next up — Plan 3 "On foot" (M4), to be written with superpowers:writing-plans:**
 - Third-person CharacterBody3D controller (walk/sprint/jump), collision-aware follow camera (Quaternius/Mixamo character)
@@ -16,6 +16,7 @@
 - terrain_tile_mesh: 33×33 Python loop per tile unvectorized (offline-only cost); water/green terrain coloring path untested
 - geo constants duplicated in terrain.py (`110574.0`/`111320.0` vs geo.py canonical)
 - Final whole-branch review for Plan 2: see ledger FINAL entry for any accepted-risk items
+- minimap roads use a single light color for legibility (deviation from plan's per-class colors, chosen at screenshot review)
 
 **Hard constraints (user-mandated):**
 - Commits authored ONLY by Aymanbalaa via repo-local git config (noreply email) — NO Co-Authored-By/AI trailers ever. History was rewritten once to scrub a gmail leak; don't reintroduce. KNOWN RISK: one subagent passed `--author` with the gmail address (caught + amended before it left the machine) — every subagent dispatch must explicitly forbid `--author` and git-config changes.
@@ -26,3 +27,4 @@
 - Screenshots: `tools/godot/godot_console.exe --path game --script res://tests/screenshot.gd` (windowed, needs GPU) → PNGs in `%APPDATA%/Godot/app_userdata/MTL Open Ile/`. ALWAYS look at them (Read tool) before claiming visual success. 5 poses: overview/street/oldport/mountain/biosphere.
 - Python: `.venv/Scripts/python -m pytest pipeline -q`; full rebuild `.venv/Scripts/python -m pipeline.build` (OSM + heightmap both cached in `data/`; delete caches ONLY if the query/source changes).
 - Overpass mirrors flaky (rotation built in); HRDEM via NRCan STAC can fail → synthetic fallback auto-engages (check console line "heightmap saved (hrdem|synthetic)").
+- Heightmap cache pinned: heightmap.npy sha256=76cabf2012331723…, heightmap_meta.json sha256=6ef96faad06ce025… — if data/ is ever lost, a fresh HRDEM fetch may differ; diff new hashes before rebuilding the committed world.

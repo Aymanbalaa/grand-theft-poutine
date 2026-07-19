@@ -2,6 +2,7 @@ import trimesh
 from pathlib import Path
 from pipeline import config
 from pipeline.landmarks import BUILDERS, export_landmarks
+from pipeline.export import _without_landmark_buildings
 
 def test_all_landmarks_have_builders():
     assert set(BUILDERS) == {lm["key"] for lm in config.LANDMARKS}
@@ -33,4 +34,8 @@ def test_landmark_buildings_excluded(monkeypatch, tmp_path):
         [{"key": "pvm", "name": "t", "lat": 45.5046, "lon": -73.55425, "clear": 60}])
     meta = export_city(city, tmp_path)
     assert len(meta["landmarks"]) == 1
-    assert len(city.buildings) == n_before - 1
+    # export_city must not mutate the caller's CityData
+    assert len(city.buildings) == n_before
+    # the exclusion itself is verified via the non-mutating helper
+    filtered = _without_landmark_buildings(city)
+    assert len(filtered.buildings) == n_before - 1

@@ -9,18 +9,22 @@ from pipeline.minimap import render_minimap
 from pipeline.osm_parse import CityData
 from pipeline.tiler import build_tiles
 
-def _drop_landmark_buildings(city: CityData) -> None:
+def _without_landmark_buildings(city: CityData) -> CityData:
     anchors = [(latlon_to_xz(lm["lat"], lm["lon"]), lm["clear"]) for lm in config.LANDMARKS]
     def keep(b) -> bool:
         cx = sum(p[0] for p in b.footprint) / len(b.footprint)
         cz = sum(p[1] for p in b.footprint) / len(b.footprint)
         return all(math.hypot(cx - ax, cz - az) > r for (ax, az), r in anchors)
-    city.buildings = [b for b in city.buildings if keep(b)]
+    return CityData(
+        roads=city.roads,
+        buildings=[b for b in city.buildings if keep(b)],
+        areas=city.areas,
+    )
 
 def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
+    city = _without_landmark_buildings(city)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    _drop_landmark_buildings(city)
     tiles = build_tiles(city, hm=hm)
     tile_entries = []
     for (tx, tz), scene in sorted(tiles.items()):

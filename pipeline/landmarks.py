@@ -1,12 +1,11 @@
 from __future__ import annotations
 from pathlib import Path
-import numpy as np
 import trimesh
 from shapely.geometry import Polygon
 from trimesh.creation import box as tm_box, icosphere, extrude_polygon
 from pipeline import config
 from pipeline.geo import latlon_to_xz
-from pipeline.meshes import _paint, _ZUP_TO_YUP
+from pipeline.meshes import _paint
 
 GLASS = (120, 135, 150)
 STONE = (110, 106, 100)
