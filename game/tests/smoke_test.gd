@@ -3,6 +3,7 @@ extends SceneTree
 # Run: tools/godot/godot.exe --headless --path game --script res://tests/smoke_test.gd
 
 const _player_preload = preload("res://scripts/player.gd")
+const _car_preload = preload("res://scripts/car.gd")
 
 func _init() -> void:
 	var scene: PackedScene = load("res://scenes/main.tscn")
@@ -52,5 +53,20 @@ func _init() -> void:
 		quit(1)
 		return
 	print("LANDED OK y=%.1f" % player.global_position.y)
+	var car_scene: PackedScene = load("res://scenes/car.tscn")
+	if car_scene == null:
+		push_error("FAIL: car.tscn did not load")
+		quit(1)
+		return
+	var test_car := car_scene.instantiate() as Car
+	get_root().add_child(test_car)
+	test_car.park()
+	await process_frame
+	if not InputMap.has_action("enter_exit"):
+		push_error("FAIL: enter_exit action not registered")
+		quit(1)
+		return
+	test_car.queue_free()
+	print("CAR OK")
 	print("SMOKE OK: %d tiles" % loader.loaded_tile_count())
 	quit(0)

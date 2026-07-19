@@ -13,7 +13,7 @@ var cam_yaw := 0.0
 static func ensure_actions() -> void:
 	var defs := [["move_forward", KEY_W], ["move_back", KEY_S], ["move_left", KEY_A],
 			["move_right", KEY_D], ["jump", KEY_SPACE], ["sprint", KEY_SHIFT],
-			["toggle_fly", KEY_F]]
+			["toggle_fly", KEY_F], ["enter_exit", KEY_E]]
 	for d in defs:
 		if not InputMap.has_action(d[0]):
 			InputMap.add_action(d[0])
