@@ -65,6 +65,17 @@ def test_props_geometry_in_tiles():
     names = {n for scene in tiles.values() for n in scene.geometry}
     assert "props" in names
 
+def test_export_preserves_props(tmp_path):
+    # regression: _without_landmark_buildings rebuilt CityData and silently
+    # dropped trees/lamps, so exported tiles lost all props
+    import trimesh
+    city = parse_osm(FIX)
+    meta = export_city(city, tmp_path)
+    names = set()
+    for t in meta["tiles"]:
+        names |= set(trimesh.load(tmp_path / t["file"]).geometry.keys())
+    assert "props" in names
+
 def test_tree_cap_deterministic(monkeypatch):
     from pipeline import config
     monkeypatch.setattr(config, "MAX_TREES_PER_TILE", 1)

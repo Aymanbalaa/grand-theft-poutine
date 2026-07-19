@@ -19,6 +19,8 @@ def _without_landmark_buildings(city: CityData) -> CityData:
         roads=city.roads,
         buildings=[b for b in city.buildings if keep(b)],
         areas=city.areas,
+        trees=city.trees,
+        lamps=city.lamps,
     )
 
 def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
