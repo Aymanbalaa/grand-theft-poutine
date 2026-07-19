@@ -8,7 +8,7 @@
 
 **Next up — Plan 3 "On foot" (M4), to be written with superpowers:writing-plans:**
 - Third-person CharacterBody3D controller (walk/sprint/jump), collision-aware follow camera (Quaternius/Mixamo character)
-- Collisions for buildings/terrain (tiles currently have no collision shapes — generate trimesh collision in pipeline or Godot import settings)
+- Collisions for buildings/terrain (tiles currently have no collision shapes — generate trimesh collision in pipeline or Godot import settings). NOTE: building meshes are NOT watertight since M3.5 (roof cap slabs are open) — convex decomposition/`is_volume`-dependent approaches will need the wall solids, not the concatenated mesh
 - Street-name + district HUD (point-in-polygon vs metadata) — FIRST dedupe `streets` metadata (7,357 per-way fragments, ~2 MB; dedupe by name / split per district) and consume or drop the unused `spawn` field
 - Spawn on foot downtown instead of fly cam (keep fly cam as debug toggle)
 

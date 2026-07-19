@@ -1,4 +1,5 @@
 from __future__ import annotations
+import dataclasses
 import json
 import math
 from pathlib import Path
@@ -15,13 +16,8 @@ def _without_landmark_buildings(city: CityData) -> CityData:
         cx = sum(p[0] for p in b.footprint) / len(b.footprint)
         cz = sum(p[1] for p in b.footprint) / len(b.footprint)
         return all(math.hypot(cx - ax, cz - az) > r for (ax, az), r in anchors)
-    return CityData(
-        roads=city.roads,
-        buildings=[b for b in city.buildings if keep(b)],
-        areas=city.areas,
-        trees=city.trees,
-        lamps=city.lamps,
-    )
+    # replace() keeps every other field, so future CityData fields can't be dropped
+    return dataclasses.replace(city, buildings=[b for b in city.buildings if keep(b)])
 
 def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
     city = _without_landmark_buildings(city)
