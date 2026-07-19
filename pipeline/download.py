@@ -15,7 +15,7 @@ OVERPASS_URLS = [
 
 # Some instances rate-limit requests lacking a descriptive User-Agent
 # ("Please include a meaningful User-Agent string..." 429 response).
-HEADERS = {"User-Agent": "MTL-Open-Ile-pipeline/1.0 (contact: aymanbalaa30@gmail.com)"}
+HEADERS = {"User-Agent": "MTL-Open-Ile-pipeline/1.0 (github.com/Aymanbalaa)"}
 
 def _query() -> str:
     s, w, n, e = config.BBOX
