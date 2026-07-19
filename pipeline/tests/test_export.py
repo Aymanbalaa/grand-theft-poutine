@@ -28,6 +28,8 @@ def test_export_writes_glb_and_metadata(tmp_path):
     assert "Rue Sainte-Catherine" in meta["streets"]["names"]
     assert meta["streets"]["cell"] == 64.0
     assert len(meta["districts"]) == 7
+    assert len(meta["car_spawns"]) >= 1
+    assert set(meta["car_spawns"][0]) == {"x", "y", "z", "yaw"}
 
 def test_export_deterministic(tmp_path):
     city = parse_osm(FIX)

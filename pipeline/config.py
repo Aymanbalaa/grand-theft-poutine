@@ -91,3 +91,10 @@ DISTRICTS = [
     {"name": "Parc Jean-Drapeau",        "box": (45.5010, -73.5430, 45.5200, -73.5250)},
     {"name": "Centre-Ville",             "box": (45.4880, -73.5820, 45.5055, -73.5430)},
 ]
+
+# --- M5 parked cars ---
+CAR_SPAWN_CLASSES = ("primary", "secondary", "tertiary", "residential")
+CAR_SPAWN_RADIUS = 700.0      # meters from origin — downtown only
+CAR_SPAWN_SPACING = 90.0      # arclength between candidates along a road
+CAR_SPAWN_MIN_GAP = 25.0      # min distance between any two accepted spawns
+MAX_CAR_SPAWNS = 120

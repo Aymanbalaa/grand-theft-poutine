@@ -4,6 +4,7 @@ import json
 import math
 from pathlib import Path
 from pipeline import config
+from pipeline.cars import car_spawns
 from pipeline.geo import latlon_to_xz
 from pipeline.landmarks import export_landmarks
 from pipeline.minimap import render_minimap
@@ -40,6 +41,7 @@ def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
         "streets": build_street_grid(city.roads),
         "districts": district_polys(),
         "landmarks": landmark_entries,
+        "car_spawns": car_spawns(city.roads, hm),
     }
     (out / "city_metadata.json").write_text(
         json.dumps(meta, sort_keys=True, indent=1), encoding="utf-8"
