@@ -14,3 +14,31 @@ DEFAULT_ROAD_WIDTH = 6.0
 LEVEL_HEIGHT = 3.2
 DEFAULT_BUILDING_HEIGHT = 10.0
 MAX_TILE_TRIS = 120000
+
+# --- M3 visual pass: stylized Montreal palette (sRGB 0-255) ---
+BUILDING_PALETTE = {
+    "residential": (166, 100, 80),   # Montreal brick
+    "commercial":  (141, 148, 158),  # downtown glass/steel
+    "church":      (105, 100, 96),   # greystone
+    "industrial":  (122, 105, 88),
+    "civic":       (176, 164, 140),  # sandstone
+    "default":     (168, 168, 164),
+}
+BUILDING_CATEGORIES = {
+    "apartments": "residential", "residential": "residential", "house": "residential",
+    "detached": "residential", "terrace": "residential", "dormitory": "residential",
+    "retail": "commercial", "commercial": "commercial", "office": "commercial", "hotel": "commercial",
+    "church": "church", "cathedral": "church", "chapel": "church", "monastery": "church",
+    "industrial": "industrial", "warehouse": "industrial",
+    "university": "civic", "school": "civic", "college": "civic", "hospital": "civic",
+    "public": "civic", "civic": "civic", "government": "civic", "museum": "civic",
+}
+ROAD_COLORS = {
+    "motorway": (52, 52, 56), "trunk": (52, 52, 56),
+    "motorway_link": (52, 52, 56), "trunk_link": (52, 52, 56),
+    "primary": (64, 64, 68), "secondary": (64, 64, 68),
+    "primary_link": (64, 64, 68), "secondary_link": (64, 64, 68),
+    "pedestrian": (150, 140, 124), "footway": (150, 140, 124), "cycleway": (96, 116, 96),
+}
+DEFAULT_ROAD_COLOR = (78, 78, 82)
+AREA_COLORS = {"water": (62, 110, 138), "green": (88, 132, 76)}

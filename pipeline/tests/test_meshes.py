@@ -33,3 +33,18 @@ def test_malformed_inputs_return_none_never_raise():
     assert road_mesh(Road(13, "x", [(0.0, 0.0)], 8.0)) is None
     assert road_mesh(Road(14, "x", [(0.0, 0.0), (100.0, 0.0)], 0.0)) is None
     assert area_mesh(Area(15, "water", [(0.0, 0.0), (1.0, 1.0)])) is None
+
+def test_building_vertex_colors_by_type_with_jitter():
+    a = building_mesh(Building(1, SQ, 30.0, "apartments"))
+    b = building_mesh(Building(2, SQ, 30.0, "apartments"))
+    office = building_mesh(Building(3, SQ, 30.0, "office"))
+    assert a.visual.vertex_colors.shape == (len(a.vertices), 4)
+    assert not np.array_equal(a.visual.vertex_colors[0], b.visual.vertex_colors[0])  # id jitter
+    assert not np.array_equal(a.visual.vertex_colors[0], office.visual.vertex_colors[0])
+
+def test_road_and_area_colors():
+    from pipeline import config
+    r = road_mesh(Road(4, "x", [(0.0, 0.0), (10.0, 0.0)], 8.0, "footway"))
+    assert tuple(r.visual.vertex_colors[0][:3]) == config.ROAD_COLORS["footway"]
+    w = area_mesh(Area(5, "water", SQ))
+    assert tuple(w.visual.vertex_colors[0][:3]) == config.AREA_COLORS["water"]
