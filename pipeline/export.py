@@ -5,6 +5,7 @@ from pathlib import Path
 from pipeline import config
 from pipeline.geo import latlon_to_xz
 from pipeline.landmarks import export_landmarks
+from pipeline.minimap import render_minimap
 from pipeline.osm_parse import CityData
 from pipeline.tiler import build_tiles
 
@@ -35,6 +36,7 @@ def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
     )
     landmark_entries = export_landmarks(out, hm)
     meta = {
+        "minimap": render_minimap(city, out / "minimap.png"),
         "origin": {"lat": config.ORIGIN[0], "lon": config.ORIGIN[1]},
         "tile_size": config.TILE_SIZE,
         "tiles": tile_entries,
