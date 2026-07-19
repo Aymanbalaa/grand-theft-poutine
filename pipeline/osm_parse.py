@@ -40,11 +40,11 @@ def _parse_meters(value: str) -> float | None:
 def _building_height(tags: dict[str, str]) -> float:
     if "height" in tags:
         h = _parse_meters(tags["height"])
-        if h:
+        if h is not None and h > 0:
             return h
     if "building:levels" in tags:
         lv = _parse_meters(tags["building:levels"])
-        if lv:
+        if lv is not None and lv > 0:
             return lv * config.LEVEL_HEIGHT
     return config.DEFAULT_BUILDING_HEIGHT
 
@@ -77,6 +77,7 @@ def parse_osm(xml_path: str | Path) -> CityData:
                     kind = _area_kind(tags)
                     if kind:
                         city.areas.append(Area(wid, kind, ring))
+        if el.tag in ("node", "way"):
             el.clear()
     city.roads.sort(key=lambda r: r.osm_id)
     city.buildings.sort(key=lambda b: b.osm_id)
