@@ -40,10 +40,12 @@ func _process(_delta: float) -> void:
 	if _driving != null:
 		_speed_label.text = "%d km/h" % absi(roundi(_driving.speed * 3.6))
 		return
-	_prompt.visible = _player.visible and _nearest_car() != null
+	_prompt.visible = _player.visible and not _fly_cam.current and _nearest_car() != null
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("enter_exit"):
+		if _fly_cam.current:
+			return  # E doubles as fly-cam ascend; never enter/exit from debug cam
 		if _driving != null:
 			_exit_car()
 		else:
