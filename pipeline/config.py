@@ -44,3 +44,13 @@ ROAD_COLORS = {
 }
 DEFAULT_ROAD_COLOR = (78, 78, 82)
 AREA_COLORS = {"water": (62, 110, 138), "green": (88, 132, 76)}
+
+# --- Terrain ---
+TERRAIN_STEP = 8.0            # heightmap grid spacing (m)
+TERRAIN_TILE_QUADS = 32       # terrain quads per tile edge (32 -> 2048 tris/tile)
+TERRAIN_COLOR_LOW = (150, 146, 138)   # urban ground
+TERRAIN_COLOR_HIGH = (96, 124, 82)    # wooded slopes
+TERRAIN_COLOR_BLEND = (25.0, 90.0)    # y-range over which low blends to high
+TERRAIN_WATER_DROP = 3.0      # terrain depression under water polygons (m)
+TERRAIN_WATER_COLOR = (52, 84, 104)
+MONT_ROYAL_SUMMIT = (45.5063, -73.5872)  # just west of bbox; east flank is in-map
