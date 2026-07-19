@@ -11,6 +11,7 @@ sky_top_color = Color(0.35, 0.55, 0.8, 1)
 sky_horizon_color = Color(0.75, 0.82, 0.9, 1)
 ground_bottom_color = Color(0.2, 0.17, 0.13, 1)
 ground_horizon_color = Color(0.75, 0.82, 0.9, 1)
+sky_curve = 0.09
 sun_angle_max = 30.0
 
 [sub_resource type="Sky" id="sky1"]
@@ -20,15 +21,15 @@ sky_material = SubResource("sky_mat")
 background_mode = 2
 sky = SubResource("sky1")
 ambient_light_source = 3
-ambient_light_energy = 0.7
+ambient_light_energy = 0.45
 tonemap_mode = 3
 ssao_enabled = true
 glow_enabled = true
-glow_intensity = 0.6
+glow_intensity = 0.4
 glow_bloom = 0.1
 fog_enabled = true
 fog_light_color = Color(0.75, 0.82, 0.9, 1)
-fog_density = 0.00012
+fog_density = 0.00007
 
 [sub_resource type="StandardMaterial3D" id="ground_mat"]
 albedo_color = Color(0.62, 0.63, 0.6, 1)

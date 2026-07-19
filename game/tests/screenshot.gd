@@ -1,13 +1,15 @@
 extends SceneTree
 # Capture screenshots from fixed camera poses. NOT headless — needs a GPU.
-# Run: tools/godot/godot.exe --path game --script res://tests/screenshot.gd
+# Run: tools/godot/godot_console.exe --path game --script res://tests/screenshot.gd
 
 const POSES := [
-	{"name": "overview",  "pos": Vector3(0, 600, 400),      "look": Vector3(0, 0, 0)},
-	{"name": "street",    "pos": Vector3(50, 40, 100),      "look": Vector3(0, 10, -200)},
-	{"name": "oldport",   "pos": Vector3(800, 120, 900),    "look": Vector3(400, 0, 400)},
-	{"name": "mountain",  "pos": Vector3(-1200, 250, -200), "look": Vector3(-2200, 150, -250)},
-	{"name": "biosphere", "pos": Vector3(1250, 120, -800),  "look": Vector3(1600, 30, -1117)},
+	{"name": "overview",  "pos": Vector3(0, 600, 400),      "look": Vector3(0, 0, 0),          "time": 0.4},
+	{"name": "street",    "pos": Vector3(50, 40, 100),      "look": Vector3(0, 10, -200),      "time": 0.4},
+	{"name": "oldport",   "pos": Vector3(800, 120, 900),    "look": Vector3(400, 0, 400),      "time": 0.33},
+	{"name": "mountain",  "pos": Vector3(-1200, 250, -200), "look": Vector3(-2200, 150, -250), "time": 0.4},
+	{"name": "biosphere", "pos": Vector3(1250, 120, -800),  "look": Vector3(1600, 30, -1117),  "time": 0.4},
+	{"name": "dusk",      "pos": Vector3(600, 200, 700),    "look": Vector3(0, 60, 0),         "time": 0.285},
+	{"name": "night",     "pos": Vector3(-100, 80, -150),   "look": Vector3(-450, 90, -550),   "time": 0.95},
 ]
 
 func _init() -> void:
@@ -18,6 +20,9 @@ func _init() -> void:
 	cam.set_script(null)  # disable fly controls
 	await process_frame
 	for pose in POSES:
+		var sun := root.get_node_or_null("Sun")
+		if sun != null:
+			sun.set("time_of_day", pose["time"])
 		cam.position = pose["pos"]
 		cam.look_at(pose["look"])
 		for i in 15:

@@ -18,17 +18,22 @@ void vertex() {
 }
 
 void fragment() {
-	vec3 base = COLOR.rgb;
+	// tile vertex colors are authored sRGB; COLOR arrives raw, so linearize
+	vec3 base = pow(COLOR.rgb, vec3(2.2));
 	float vertical = 1.0 - smoothstep(0.25, 0.4, abs(wnormal.y));
 	float u = abs(wnormal.x) > abs(wnormal.z) ? wpos.z : wpos.x;
 	float v = wpos.y;
 	vec2 cell = vec2(floor(u / 3.6), floor(v / 3.2));
 	vec2 f = vec2(fract(u / 3.6), fract(v / 3.2));
-	float win = step(0.2, f.x) * step(f.x, 0.8) * step(0.25, f.y) * step(f.y, 0.85);
+	float win = step(0.25, f.x) * step(f.x, 0.75) * step(0.3, f.y) * step(f.y, 0.8);
 	win *= vertical;
-	float lit = step(0.55, hash21(cell));
-	vec3 glass_day = base * 0.5 + vec3(0.07, 0.09, 0.12);
-	ALBEDO = mix(base, glass_day, win * 0.85);
-	ROUGHNESS = mix(1.0, 0.3, win);
-	EMISSION = vec3(1.0, 0.72, 0.35) * (win * lit * night_amount * 2.4);
+	float lit = step(0.62, hash21(cell));
+	// emission only kicks in well past dusk, so daytime facades stay matte
+	float night = smoothstep(0.45, 0.9, night_amount);
+	vec3 glass_day = base * 0.55 + vec3(0.05, 0.06, 0.08);
+	ALBEDO = mix(base, glass_day, win * 0.6);
+	ROUGHNESS = mix(1.0, 0.35, win);
+	// dim windows seen edge-on so glancing walls don't merge into bright stripes
+	float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+	EMISSION = vec3(1.0, 0.72, 0.35) * (win * lit * night * 1.6 * (0.2 + 0.8 * facing));
 }
