@@ -75,5 +75,39 @@ func _init() -> void:
 		quit(1)
 		return
 	print("CARS OK: %d" % cars.get_child_count())
+	var drive_car := cars.get_child(0) as Car
+	player.global_position = drive_car.global_position + Vector3(2.5, 1.0, 0)
+	await physics_frame
+	root.call("_enter_car", drive_car)
+	await process_frame
+	var car_cam := drive_car.get_node("CamPivot/SpringArm3D/CarCamera") as Camera3D
+	if not car_cam.current or player.visible:
+		push_error("FAIL: entering car did not swap camera / hide player")
+		quit(1)
+		return
+	print("ENTER OK")
+	var start_pos := drive_car.global_position
+	Input.action_press("move_forward")
+	var moving := false
+	for i in 900:
+		await process_frame
+		if drive_car.speed > 3.0 and start_pos.distance_to(drive_car.global_position) >= 1.0:
+			moving = true
+			break
+	Input.action_release("move_forward")
+	if not moving:
+		push_error("FAIL: car did not drive (speed=%f, dist=%f)"
+				% [drive_car.speed, start_pos.distance_to(drive_car.global_position)])
+		quit(1)
+		return
+	print("DRIVE OK v=%.1f" % drive_car.speed)
+	root.call("_exit_car")
+	await process_frame
+	var pcam2 := player.get_node("CamPivot/SpringArm3D/PlayerCamera") as Camera3D
+	if not player.visible or not pcam2.current:
+		push_error("FAIL: exiting car did not restore player")
+		quit(1)
+		return
+	print("EXIT OK")
 	print("SMOKE OK: %d tiles" % loader.loaded_tile_count())
 	quit(0)

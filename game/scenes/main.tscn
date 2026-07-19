@@ -100,4 +100,38 @@ theme_override_constants/outline_size = 6
 horizontal_alignment = 1
 script = ExtResource("8")
 
+[node name="PromptLabel" type="Label" parent="HUD"]
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_right = 200.0
+offset_top = -120.0
+offset_bottom = -88.0
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 5
+horizontal_alignment = 1
+text = "Press E to drive"
+
+[node name="SpeedLabel" type="Label" parent="HUD"]
+visible = false
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -220.0
+offset_right = -24.0
+offset_top = -72.0
+offset_bottom = -24.0
+theme_override_font_sizes/font_size = 30
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+horizontal_alignment = 2
+text = "0 km/h"
+
 [node name="Player" parent="." instance=ExtResource("7")]
