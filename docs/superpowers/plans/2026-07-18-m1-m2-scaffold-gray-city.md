@@ -79,6 +79,7 @@ tools/
 game/.godot/
 *.import
 .pytest_cache/
+.superpowers/
 ```
 
 - [ ] **Step 2: Write `README.md`**
@@ -105,6 +106,7 @@ Map data © OpenStreetMap contributors (ODbL).
 ```
 shapely>=2.0
 trimesh>=4.0
+mapbox-earcut>=1.0
 numpy>=1.26
 requests>=2.31
 pytest>=8.0
@@ -953,7 +955,7 @@ func loaded_tile_count() -> int:
 - [ ] **Step 3: Write `game/scenes/main.tscn`**
 
 ```ini
-[gd_scene load_steps=4 format=3 uid="uid://mainscene01"]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/fly_camera.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/tile_loader.gd" id="2"]
