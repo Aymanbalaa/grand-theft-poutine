@@ -74,6 +74,8 @@ func _nearest_car() -> Car:
 	return best
 
 func _enter_car(car: Car) -> void:
+	if _driving != null:
+		return
 	_driving = car
 	_player.visible = false
 	_player.set_physics_process(false)
@@ -85,6 +87,8 @@ func _enter_car(car: Car) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _exit_car() -> void:
+	if _driving == null:
+		return
 	var car := _driving
 	_driving = null
 	car.stop_driving()
