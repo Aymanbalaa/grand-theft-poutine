@@ -8,8 +8,14 @@ var _camera: Camera3D
 
 func _ready() -> void:
 	var meta_file := FileAccess.open("res://world/city_metadata.json", FileAccess.READ)
-	assert(meta_file != null, "city_metadata.json missing — run the pipeline first")
-	var meta: Dictionary = JSON.parse_string(meta_file.get_as_text())
+	if meta_file == null:
+		push_error("city_metadata.json missing - run the pipeline first")
+		return
+	var parsed: Variant = JSON.parse_string(meta_file.get_as_text())
+	if typeof(parsed) != TYPE_DICTIONARY:
+		push_error("city_metadata.json is malformed (expected top-level object)")
+		return
+	var meta: Dictionary = parsed
 	_tile_size = meta["tile_size"]
 	for t in meta["tiles"]:
 		var path := "res://world/%s" % t["file"]

@@ -13,8 +13,14 @@ func _init() -> void:
 	await process_frame
 	await process_frame
 	var loader := root.get_node("TileLoader") as TileLoader
-	if loader == null or loader.loaded_tile_count() == 0:
-		push_error("FAIL: no tiles loaded")
+	if loader == null or loader.loaded_tile_count() <= 100:
+		var n := -1 if loader == null else loader.loaded_tile_count()
+		push_error("FAIL: expected >100 tiles, got %d" % n)
+		quit(1)
+		return
+	var cam := root.get_node_or_null("Camera") as Camera3D
+	if cam == null:
+		push_error("FAIL: Camera3D node named 'Camera' missing from main scene")
 		quit(1)
 		return
 	print("SMOKE OK: %d tiles" % loader.loaded_tile_count())
