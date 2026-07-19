@@ -81,3 +81,11 @@ def test_terrain_tile_mesh_grid():
     assert len(m.vertices) == (q + 1) ** 2
     assert len(m.faces) == q * q * 2
     assert abs(m.bounds[0][1] - 5.0) < 1e-4
+
+def test_terrain_faces_point_up():
+    m = terrain_tile_mesh(0, 0, _flat_hm(5.0))
+    assert np.all(m.face_normals[:, 1] > 0.99)
+
+def test_road_faces_point_up():
+    m = road_mesh(Road(9, "x", [(0.0, 0.0), (30.0, 0.0)], 8.0))
+    assert np.all(m.face_normals[:, 1] > 0.99)

@@ -154,7 +154,7 @@ def terrain_tile_mesh(tx: int, tz: int, hm: Heightmap,
     for iz in range(q):
         for ix in range(q):
             a = iz * n + ix
-            faces += [[a, a + 1, a + n], [a + 1, a + n + 1, a + n]]
+            faces += [[a, a + n, a + 1], [a + 1, a + n, a + n + 1]]
     mesh = trimesh.Trimesh(vertices=verts, faces=np.array(faces), process=False)
     mesh.visual.vertex_colors = colors
     return mesh
