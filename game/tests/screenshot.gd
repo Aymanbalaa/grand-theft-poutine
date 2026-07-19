@@ -13,6 +13,8 @@ const POSES := [
 	{"name": "night",     "pos": Vector3(-100, 80, -150),   "look": Vector3(-450, 90, -550),   "time": 0.95},
 	{"name": "onfoot_day",   "player": Vector3(-273, 40, -60), "time": 0.4},
 	{"name": "onfoot_night", "player": Vector3(30, 40, 40),    "time": 0.95},
+	{"name": "driving_day",   "car": Vector3(-60, 0, -80),  "drive": true, "time": 0.4},
+	{"name": "driving_night", "car": Vector3(30, 0, 40),  "time": 0.95},
 ]
 
 func _init() -> void:
@@ -40,6 +42,27 @@ func _init() -> void:
 					break
 			for i in 10:  # settle animation + HUD
 				await process_frame
+		elif pose.has("car"):
+			var cars := root.get_node("Cars")
+			var best: Node3D = null
+			var best_d := 1e9
+			for c in cars.get_children():
+				var d: float = (c as Node3D).global_position.distance_to(pose["car"])
+				if d < best_d:
+					best_d = d
+					best = c
+			root.call("_enter_car", best)
+			for i in 900:  # car falls 0.4 m onto road collision: poll, never fixed waits
+				await process_frame
+				if i > 5 and best.call("is_on_floor"):
+					break
+			if pose.get("drive", false):
+				Input.action_press("move_forward")
+				for i in 45:
+					await process_frame
+				Input.action_release("move_forward")
+			for i in 10:  # settle camera + HUD
+				await process_frame
 		else:
 			fly_cam.current = true
 			fly_cam.position = pose["pos"]
@@ -49,4 +72,7 @@ func _init() -> void:
 		var img := get_root().get_viewport().get_texture().get_image()
 		img.save_png("user://shot_%s.png" % pose["name"])
 		print("saved shot_%s.png" % pose["name"])
+		if pose.has("car"):
+			root.call("_exit_car")
+			await process_frame
 	quit(0)

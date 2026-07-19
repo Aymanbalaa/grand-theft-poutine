@@ -8,6 +8,7 @@ No missions (yet). The game *is* the city: real street grid, real street names, 
 
 | | |
 |---|---|
+| ![Driving through Old Montreal](docs/screenshots/m5_driving_day.png) | ![Night drive on Rue Saint-Paul](docs/screenshots/m5_driving_night.png) |
 | ![On foot in Old Montreal at night](docs/screenshots/m4_onfoot_night.png) | ![On foot by day](docs/screenshots/m4_onfoot_day.png) |
 | ![Downtown at night](docs/screenshots/m35_night.png) | ![Sunset over the Old Port](docs/screenshots/m35_dusk.png) |
 | ![Downtown overview](docs/screenshots/m35_overview.png) | ![Mont Royal](docs/screenshots/m35_mountain.png) |
@@ -33,7 +34,7 @@ HRDEM elevation ┘     offline, deterministic     glTF tiles         runtime
 - [x] **M3** — Make it Montréal: palette, river, Mont Royal terrain, landmarks, day/night, minimap
 - [x] **M3.5** — WOW pass: emissive windows at night, 16k street trees & lamps from OSM, procedural sky/SSAO/glow/ACES, animated water, roof caps & gables
 - [x] **M4** — On foot: third-person character (blocky minifig with a tuque), lazy trimesh collisions, street + district HUD, spawn downtown (F = debug fly-cam)
-- [ ] **M5** — Behind the wheel: drivable cars, enter/exit, speedometer
+- [x] **M5** — Behind the wheel: 120 parked cars on real streets, walk up + **E** to drive (arcade physics, chase cam, speedometer)
 - [ ] **M6** — Polish: audio, tuning, credits
 
 ## Run it
@@ -41,7 +42,7 @@ HRDEM elevation ┘     offline, deterministic     glTF tiles         runtime
 1. `py -m venv .venv && .venv/Scripts/pip install -r requirements.txt`
 2. [Godot 4.5-stable](https://godotengine.org/download/archive/) portable → `tools/godot/`
 3. Generate the city (or use the committed tiles in `game/world/`): `.venv/Scripts/python -m pipeline.build`
-4. Open `game/` in Godot and run `scenes/main.tscn` — fly with WASD + mouse, hold **T** to fast-forward time
+4. Open `game/` in Godot and run `scenes/main.tscn` — WASD + mouse to walk, **E** near a parked car to drive, **F** for the debug fly-cam, hold **T** to fast-forward time
 
 Tests: `.venv/Scripts/python -m pytest pipeline -q` and `tools/godot/godot_console.exe --headless --path game --script res://tests/smoke_test.gd`
 
