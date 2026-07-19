@@ -69,10 +69,10 @@ func _ready() -> void:
 		_apply_city_material(lm_node)
 
 func _process(_delta: float) -> void:
+	# re-fetch every frame so F-toggling cameras retargets streaming + collision
+	_camera = get_viewport().get_camera_3d()
 	if _camera == null:
-		_camera = get_viewport().get_camera_3d()
-		if _camera == null:
-			return
+		return
 	var cam_pos := _camera.global_position
 	var cam_xz := Vector2(cam_pos.x, cam_pos.z)
 	for t in _tiles:

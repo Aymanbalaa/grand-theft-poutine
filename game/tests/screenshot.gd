@@ -34,7 +34,11 @@ func _init() -> void:
 			(player as Node3D).global_position = pose["player"]
 			player.set("velocity", Vector3.ZERO)
 			player_cam.current = true
-			for i in 60:  # fall onto collision + settle + HUD update
+			for i in 900:  # fall onto collision: poll, never fixed-frame waits
+				await process_frame
+				if i > 5 and player.call("is_on_floor"):
+					break
+			for i in 10:  # settle animation + HUD
 				await process_frame
 		else:
 			fly_cam.current = true
