@@ -33,3 +33,5 @@ def test_zero_or_junk_height_falls_through():
     assert _building_height({"height": "0"}) == 10.0
     assert _building_height({"height": "0", "building:levels": "3"}) == 3 * 3.2
     assert _building_height({"height": "abc"}) == 10.0
+    assert _building_height({"height": "-5"}) == 10.0
+    assert _building_height({"height": "-5", "building:levels": "3"}) == 3 * 3.2
