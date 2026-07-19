@@ -8,6 +8,7 @@ No missions (yet). The game *is* the city: real street grid, real street names, 
 
 | | |
 |---|---|
+| ![On foot in Old Montreal at night](docs/screenshots/m4_onfoot_night.png) | ![On foot by day](docs/screenshots/m4_onfoot_day.png) |
 | ![Downtown at night](docs/screenshots/m35_night.png) | ![Sunset over the Old Port](docs/screenshots/m35_dusk.png) |
 | ![Downtown overview](docs/screenshots/m35_overview.png) | ![Mont Royal](docs/screenshots/m35_mountain.png) |
 | ![Old Port](docs/screenshots/m35_oldport.png) | ![Biosphère & Île Sainte-Hélène](docs/screenshots/m35_biosphere.png) |
@@ -31,7 +32,7 @@ HRDEM elevation ┘     offline, deterministic     glTF tiles         runtime
 - [x] **M1–M2** — Gray city: real street grid + extruded buildings, fly-cam
 - [x] **M3** — Make it Montréal: palette, river, Mont Royal terrain, landmarks, day/night, minimap
 - [x] **M3.5** — WOW pass: emissive windows at night, 16k street trees & lamps from OSM, procedural sky/SSAO/glow/ACES, animated water, roof caps & gables
-- [ ] **M4** — On foot: third-person character, collisions, street-name HUD
+- [x] **M4** — On foot: third-person character (blocky minifig with a tuque), lazy trimesh collisions, street + district HUD, spawn downtown (F = debug fly-cam)
 - [ ] **M5** — Behind the wheel: drivable cars, enter/exit, speedometer
 - [ ] **M6** — Polish: audio, tuning, credits
 
