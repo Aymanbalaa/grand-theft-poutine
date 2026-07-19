@@ -48,3 +48,13 @@ def test_tile_budget_raises(monkeypatch):
     city = parse_osm(FIX)
     with pytest.raises(ValueError, match="over budget"):
         build_tiles(city)
+
+def test_build_tiles_with_heightmap_has_terrain_everywhere():
+    import numpy as np
+    from pipeline.terrain import Heightmap
+    hm = Heightmap(grid=np.zeros((4, 4), dtype=np.float32),
+                   x0=-3000.0, z0=-3000.0, step_x=2000.0, step_z=2000.0)
+    city = parse_osm(FIX)
+    tiles = build_tiles(city, hm=hm)
+    assert len(tiles) >= 200  # full bbox range gets terrain tiles
+    assert all("terrain" in scene.geometry for scene in tiles.values())

@@ -24,7 +24,7 @@ size = Vector2(8000, 8000)
 environment = SubResource("env1")
 
 [node name="Ground" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -40, 0)
 mesh = SubResource("ground_mesh")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]

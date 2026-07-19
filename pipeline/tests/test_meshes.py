@@ -19,7 +19,7 @@ def test_road_mesh_is_flat_ribbon():
     lo, hi = m.bounds
     assert abs(hi[1] - lo[1]) < 1e-6            # flat
     assert abs((hi[2] - lo[2]) - 8.0) < 1e-6    # width across z
-    assert len(m.faces) == 2                     # one quad = 2 tris
+    assert len(m.faces) == 10                    # 5 densified segments * 2 tris
 
 def test_area_mesh_flat():
     m = area_mesh(Area(4, "water", SQ))
@@ -55,3 +55,29 @@ def test_area_mesh_with_hole_has_fewer_area():
     hole = [(4.0, 4.0), (6.0, 4.0), (6.0, 6.0), (4.0, 6.0)]
     holed = area_mesh(Area(7, "water", SQ, [hole]))
     assert holed is not None and holed.area < full.area
+
+from pipeline.terrain import Heightmap
+from pipeline.meshes import terrain_tile_mesh
+
+def _flat_hm(h: float) -> Heightmap:
+    return Heightmap(grid=np.full((4, 4), h, dtype=np.float32),
+                     x0=-512.0, z0=-512.0, step_x=341.33, step_z=341.33)
+
+def test_building_displaced_onto_terrain():
+    m = building_mesh(Building(1, SQ, 30.0, "yes"), hm=_flat_hm(50.0))
+    lo, hi = m.bounds
+    assert abs(lo[1] - 48.0) < 1e-4   # base sunk 2 m below terrain
+    assert abs(hi[1] - 80.0) < 1e-4   # top = terrain + height
+
+def test_road_densified_and_draped():
+    m = road_mesh(Road(2, "x", [(0.0, 0.0), (100.0, 0.0)], 8.0), hm=_flat_hm(10.0))
+    assert len(m.faces) == 10          # 100 m -> 5 segments of <=24 m -> 10 tris
+    assert abs(m.bounds[0][1] - 10.05) < 1e-4
+
+def test_terrain_tile_mesh_grid():
+    from pipeline import config
+    m = terrain_tile_mesh(0, 0, _flat_hm(5.0))
+    q = config.TERRAIN_TILE_QUADS
+    assert len(m.vertices) == (q + 1) ** 2
+    assert len(m.faces) == q * q * 2
+    assert abs(m.bounds[0][1] - 5.0) < 1e-4

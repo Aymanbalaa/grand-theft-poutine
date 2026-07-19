@@ -5,10 +5,10 @@ from pipeline import config
 from pipeline.osm_parse import CityData
 from pipeline.tiler import build_tiles
 
-def export_city(city: CityData, out_dir: str | Path) -> dict:
+def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    tiles = build_tiles(city)
+    tiles = build_tiles(city, hm=hm)
     tile_entries = []
     for (tx, tz), scene in sorted(tiles.items()):
         fname = f"tile_{tx}_{tz}.glb"

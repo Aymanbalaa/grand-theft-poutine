@@ -1,10 +1,21 @@
 from __future__ import annotations
+import math
 import numpy as np
 import trimesh
 from shapely.geometry import Polygon, LineString
 from trimesh.creation import extrude_polygon, triangulate_polygon
 from pipeline.osm_parse import Building, Road, Area
+from pipeline.terrain import Heightmap
 from pipeline import config
+
+def _densify(points: list[tuple[float, float]], max_len: float = 24.0) -> list[tuple[float, float]]:
+    out = [points[0]]
+    for (x1, z1), (x2, z2) in zip(points[:-1], points[1:]):
+        d = math.hypot(x2 - x1, z2 - z1)
+        steps = max(1, math.ceil(d / max_len))
+        for i in range(1, steps + 1):
+            out.append((x1 + (x2 - x1) * i / steps, z1 + (z2 - z1) * i / steps))
+    return out
 
 def _jitter(osm_id: int) -> float:
     """Deterministic per-id shade factor in [0.88, 1.08]."""
@@ -37,7 +48,7 @@ def _to_yup(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     mesh.fix_normals(multibody=False)
     return mesh
 
-def building_mesh(b: Building) -> trimesh.Trimesh | None:
+def building_mesh(b: Building, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
     if len(b.footprint) < 3 or b.height <= 0:
         return None
     poly = Polygon(b.footprint)
@@ -45,16 +56,25 @@ def building_mesh(b: Building) -> trimesh.Trimesh | None:
         poly = poly.buffer(0)
     if poly.is_empty or poly.area < 1.0 or poly.geom_type != "Polygon":
         return None
-    return _paint(_to_yup(extrude_polygon(poly, b.height)), building_color(b), _jitter(b.osm_id))
+    if hm is None:
+        mesh = _to_yup(extrude_polygon(poly, b.height))
+    else:
+        c = poly.centroid
+        mesh = _to_yup(extrude_polygon(poly, b.height + 2.0))
+        mesh.apply_translation([0.0, hm.sample(c.x, c.y) - 2.0, 0.0])
+    return _paint(mesh, building_color(b), _jitter(b.osm_id))
 
-def road_mesh(r: Road) -> trimesh.Trimesh | None:
+def road_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
     if len(r.points) < 2 or r.width <= 0:
         return None
     line = LineString(r.points)
     if line.length < 1.0:
         return None
+    pts = _densify(r.points)
+    def h(x: float, z: float) -> float:
+        return 0.05 + (hm.sample(x, z) if hm is not None else 0.0)
     verts, faces = [], []
-    for (x1, z1), (x2, z2) in zip(r.points[:-1], r.points[1:]):
+    for (x1, z1), (x2, z2) in zip(pts[:-1], pts[1:]):
         d = np.array([x2 - x1, z2 - z1])
         n = np.linalg.norm(d)
         if n < 1e-6:
@@ -62,9 +82,10 @@ def road_mesh(r: Road) -> trimesh.Trimesh | None:
         px, pz = -d[1] / n, d[0] / n  # left-hand perpendicular in xz
         hw = r.width / 2.0
         i = len(verts)
+        y1, y2 = h(x1, z1), h(x2, z2)
         verts += [
-            [x1 + px * hw, 0.05, z1 + pz * hw], [x1 - px * hw, 0.05, z1 - pz * hw],
-            [x2 + px * hw, 0.05, z2 + pz * hw], [x2 - px * hw, 0.05, z2 - pz * hw],
+            [x1 + px * hw, y1, z1 + pz * hw], [x1 - px * hw, y1, z1 - pz * hw],
+            [x2 + px * hw, y2, z2 + pz * hw], [x2 - px * hw, y2, z2 - pz * hw],
         ]
         faces += [[i, i + 2, i + 1], [i + 1, i + 2, i + 3]]
     if not faces:
@@ -72,13 +93,21 @@ def road_mesh(r: Road) -> trimesh.Trimesh | None:
     mesh = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
     return _paint(mesh, config.ROAD_COLORS.get(r.road_class, config.DEFAULT_ROAD_COLOR))
 
-def area_piece_mesh(geom, kind: str, y: float = 0.02) -> trimesh.Trimesh | None:
+def area_piece_mesh(geom, kind: str, y: float = 0.02,
+                    hm: Heightmap | None = None,
+                    flat_y: float | None = None) -> trimesh.Trimesh | None:
     polys = [g for g in getattr(geom, "geoms", [geom])
              if g.geom_type == "Polygon" and not g.is_empty and g.area >= 1.0]
     parts = []
     for p in polys:
         v2d, faces = triangulate_polygon(p)
-        verts = np.column_stack([v2d[:, 0], np.full(len(v2d), y), v2d[:, 1]])
+        if flat_y is not None:
+            ys = np.full(len(v2d), flat_y)
+        elif hm is not None:
+            ys = np.array([hm.sample(px, pz) + y for px, pz in v2d])
+        else:
+            ys = np.full(len(v2d), y)
+        verts = np.column_stack([v2d[:, 0], ys, v2d[:, 1]])
         parts.append(trimesh.Trimesh(vertices=verts, faces=faces, process=False))
     if not parts:
         return None
@@ -91,3 +120,41 @@ def area_mesh(a: Area) -> trimesh.Trimesh | None:
     if not poly.is_valid:
         poly = poly.buffer(0)
     return area_piece_mesh(poly, a.kind)
+
+def terrain_tile_mesh(tx: int, tz: int, hm: Heightmap,
+                      water_geom=None, green_geom=None) -> trimesh.Trimesh:
+    from shapely.geometry import Point
+    q = config.TERRAIN_TILE_QUADS
+    ts = config.TILE_SIZE
+    n = q + 1
+    verts = np.zeros((n * n, 3))
+    colors = np.zeros((n * n, 4), dtype=np.uint8)
+    lo_y, hi_y = config.TERRAIN_COLOR_BLEND
+    c_lo = np.array(config.TERRAIN_COLOR_LOW, dtype=float)
+    c_hi = np.array(config.TERRAIN_COLOR_HIGH, dtype=float)
+    c_wet = np.array(config.TERRAIN_WATER_COLOR, dtype=float)
+    for iz in range(n):
+        for ix in range(n):
+            x = tx * ts + ix * ts / q
+            z = tz * ts + iz * ts / q
+            yv = hm.sample(x, z)
+            pt = Point(x, z)
+            if water_geom is not None and water_geom.contains(pt):
+                yv -= config.TERRAIN_WATER_DROP
+                rgb = c_wet
+            elif green_geom is not None and green_geom.contains(pt):
+                rgb = c_hi
+            else:
+                t = min(max((yv - lo_y) / (hi_y - lo_y), 0.0), 1.0)
+                rgb = c_lo * (1 - t) + c_hi * t
+            k = iz * n + ix
+            verts[k] = [x, yv, z]
+            colors[k] = [*rgb.astype(np.uint8), 255]
+    faces = []
+    for iz in range(q):
+        for ix in range(q):
+            a = iz * n + ix
+            faces += [[a, a + 1, a + n], [a + 1, a + n + 1, a + n]]
+    mesh = trimesh.Trimesh(vertices=verts, faces=np.array(faces), process=False)
+    mesh.visual.vertex_colors = colors
+    return mesh
