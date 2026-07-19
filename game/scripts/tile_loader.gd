@@ -96,6 +96,8 @@ func _build_collision(tile: Node3D) -> StaticBody3D:
 		var n := inst.name.to_lower()
 		if n.begins_with("water") or n.begins_with("props"):
 			continue
+		if inst.mesh == null:
+			continue
 		var shape := inst.mesh.create_trimesh_shape()
 		if shape == null:
 			continue
