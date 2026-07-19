@@ -5,6 +5,18 @@ class_name TileLoader
 var _tiles: Array[Dictionary] = []   # {node: Node3D, center: Vector3}
 var _tile_size := 256.0
 var _camera: Camera3D
+var _city_mat := _make_city_material()
+
+static func _make_city_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
+	m.roughness = 1.0
+	return m
+
+func _apply_city_material(node: Node) -> void:
+	for mi in node.find_children("*", "MeshInstance3D", true, false):
+		(mi as MeshInstance3D).material_override = _city_mat
 
 func _ready() -> void:
 	var meta_file := FileAccess.open("res://world/city_metadata.json", FileAccess.READ)
@@ -25,6 +37,7 @@ func _ready() -> void:
 			continue
 		var node := scene.instantiate() as Node3D
 		add_child(node)
+		_apply_city_material(node)
 		var cx := (float(t["tx"]) + 0.5) * _tile_size
 		var cz := (float(t["tz"]) + 0.5) * _tile_size
 		_tiles.append({"node": node, "center": Vector3(cx, 0.0, cz)})
