@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/car.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/car_visual.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/car_camera.gd" id="3"]
 
 [sub_resource type="BoxShape3D" id="box"]
 size = Vector3(1.9, 1.1, 4.3)
@@ -15,3 +16,13 @@ shape = SubResource("box")
 
 [node name="Visual" type="Node3D" parent="."]
 script = ExtResource("2")
+
+[node name="CamPivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+script = ExtResource("3")
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CamPivot"]
+spring_length = 7.0
+
+[node name="CarCamera" type="Camera3D" parent="CamPivot/SpringArm3D"]
+far = 4000.0

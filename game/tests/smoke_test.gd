@@ -68,5 +68,12 @@ func _init() -> void:
 		return
 	test_car.queue_free()
 	print("CAR OK")
+	var cars := root.get_node_or_null("Cars")
+	if cars == null or cars.get_child_count() < 20:
+		var nc := -1 if cars == null else cars.get_child_count()
+		push_error("FAIL: expected >=20 parked cars, got %d" % nc)
+		quit(1)
+		return
+	print("CARS OK: %d" % cars.get_child_count())
 	print("SMOKE OK: %d tiles" % loader.loaded_tile_count())
 	quit(0)
