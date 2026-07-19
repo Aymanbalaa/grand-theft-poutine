@@ -2,6 +2,7 @@ from __future__ import annotations
 import math
 import numpy as np
 import trimesh
+import trimesh.transformations as tf
 from shapely.geometry import Polygon, LineString
 from trimesh.creation import extrude_polygon, triangulate_polygon
 from pipeline.osm_parse import Building, Road, Area
@@ -48,6 +49,37 @@ def _to_yup(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     mesh.fix_normals(multibody=False)
     return mesh
 
+def _roof_cap(poly: Polygon, top_y: float, rgb: tuple, factor: float) -> trimesh.Trimesh:
+    v2d, faces = triangulate_polygon(poly)
+    verts = np.column_stack([v2d[:, 0], np.full(len(v2d), top_y + 0.05), v2d[:, 1]])
+    cap = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+    dark = tuple(int(c * 0.62) for c in rgb)
+    return _paint(cap, dark, factor)
+
+def _gable_roof(poly: Polygon, top_y: float) -> trimesh.Trimesh | None:
+    """Triangular prism along the footprint's long axis; None if not rectangular enough."""
+    mrr = poly.minimum_rotated_rectangle
+    if mrr.area <= 0 or poly.area / mrr.area < 0.75:
+        return None
+    c = list(mrr.exterior.coords)
+    e0 = np.hypot(c[1][0] - c[0][0], c[1][1] - c[0][1])
+    e1 = np.hypot(c[2][0] - c[1][0], c[2][1] - c[1][1])
+    if e0 >= e1:
+        length, width = e0, e1
+        ax, az = c[1][0] - c[0][0], c[1][1] - c[0][1]
+    else:
+        length, width = e1, e0
+        ax, az = c[2][0] - c[1][0], c[2][1] - c[1][1]
+    rise = min(3.0, width * 0.4)
+    m = extrude_polygon(Polygon([(-width / 2, 0), (width / 2, 0), (0.0, rise)]), length)
+    m.apply_translation([0.0, 0.0, -length / 2.0])
+    # extrusion runs along +Z; rotate so it runs along the long-axis direction (ax, az)
+    angle = np.arctan2(ax, az)  # rotation about +Y mapping +Z onto (ax, az) in xz
+    m.apply_transform(tf.rotation_matrix(angle, [0, 1, 0]))
+    cx, cz = mrr.centroid.x, mrr.centroid.y
+    m.apply_translation([cx, top_y, cz])
+    return _paint(m, config.ROOF_GABLE_COLOR)
+
 def building_mesh(b: Building, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
     if len(b.footprint) < 3 or b.height <= 0:
         return None
@@ -62,7 +94,15 @@ def building_mesh(b: Building, hm: Heightmap | None = None) -> trimesh.Trimesh |
         c = poly.centroid
         mesh = _to_yup(extrude_polygon(poly, b.height + 2.0))
         mesh.apply_translation([0.0, hm.sample(c.x, c.y) - 2.0, 0.0])
-    return _paint(mesh, building_color(b), _jitter(b.osm_id))
+    top_y = float(mesh.bounds[1][1])
+    cat = config.BUILDING_CATEGORIES.get(b.btype, "default")
+    roof = None
+    if cat == "residential" and b.height <= 13.0:
+        roof = _gable_roof(poly, top_y)
+    if roof is None:
+        roof = _roof_cap(poly, top_y, building_color(b), _jitter(b.osm_id))
+    walls = _paint(mesh, building_color(b), _jitter(b.osm_id))
+    return trimesh.util.concatenate([walls, roof])
 
 def road_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
     if len(r.points) < 2 or r.width <= 0:

@@ -6,9 +6,12 @@ SQ = [(0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0)]
 
 def test_building_mesh_bounds():
     m = building_mesh(Building(1, SQ, 30.0))
-    assert m is not None and m.is_volume
+    # roof cap is a flat single-sided slab concatenated on top of the watertight
+    # wall solid (same convention as area meshes), so the combined mesh is no
+    # longer a pure closed volume; is_volume is not asserted here.
+    assert m is not None
     lo, hi = m.bounds
-    assert abs(lo[1] - 0.0) < 1e-6 and abs(hi[1] - 30.0) < 1e-6  # Y is up
+    assert abs(lo[1] - 0.0) < 1e-6 and abs(hi[1] - 30.05) < 1e-6  # Y is up; cap sits at top+0.05
     assert abs(hi[0] - 10.0) < 1e-6 and abs(hi[2] - 10.0) < 1e-6
 
 def test_degenerate_building_returns_none():
@@ -67,7 +70,7 @@ def test_building_displaced_onto_terrain():
     m = building_mesh(Building(1, SQ, 30.0, "yes"), hm=_flat_hm(50.0))
     lo, hi = m.bounds
     assert abs(lo[1] - 48.0) < 1e-4   # base sunk 2 m below terrain
-    assert abs(hi[1] - 80.0) < 1e-4   # top = terrain + height
+    assert abs(hi[1] - 80.05) < 1e-4   # top = terrain + height + roof cap (0.05)
 
 def test_road_densified_and_draped():
     m = road_mesh(Road(2, "x", [(0.0, 0.0), (100.0, 0.0)], 8.0), hm=_flat_hm(10.0))
@@ -89,3 +92,23 @@ def test_terrain_faces_point_up():
 def test_road_faces_point_up():
     m = road_mesh(Road(9, "x", [(0.0, 0.0), (30.0, 0.0)], 8.0))
     assert np.all(m.face_normals[:, 1] > 0.99)
+
+def test_roof_cap_darker_than_walls():
+    m = building_mesh(Building(1, SQ, 30.0, "office"))
+    tops = m.visual.vertex_colors[m.vertices[:, 1] > 30.0]   # cap sits at 30.05
+    walls = m.visual.vertex_colors[m.vertices[:, 1] <= 30.0]
+    assert len(tops) > 0
+    assert tops[:, :3].max() < walls[:, :3].max()             # cap strictly darker
+
+def test_small_residential_gets_gable():
+    m = building_mesh(Building(2, SQ, 8.0, "house"))
+    assert m.bounds[1][1] > 8.5   # ridge rises above the flat top
+    m_office = building_mesh(Building(3, SQ, 8.0, "office"))
+    assert m_office.bounds[1][1] < 8.5  # non-residential stays flat-capped
+
+def test_tall_or_odd_footprint_no_gable():
+    tall = building_mesh(Building(4, SQ, 40.0, "apartments"))
+    assert tall.bounds[1][1] < 40.5
+    lshape = [(0, 0), (20, 0), (20, 6), (6, 6), (6, 20), (0, 20)]
+    odd = building_mesh(Building(5, lshape, 8.0, "house"))
+    assert odd.bounds[1][1] < 8.5   # L-shape ratio < 0.75 -> no gable

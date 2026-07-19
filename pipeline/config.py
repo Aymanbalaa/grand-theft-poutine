@@ -44,6 +44,7 @@ ROAD_COLORS = {
 }
 DEFAULT_ROAD_COLOR = (78, 78, 82)
 AREA_COLORS = {"water": (62, 110, 138), "green": (88, 132, 76)}
+ROOF_GABLE_COLOR = (104, 66, 54)  # dark shingle for gabled residential roofs
 
 # --- Terrain ---
 TERRAIN_STEP = 8.0            # heightmap grid spacing (m)
