@@ -17,7 +17,7 @@ def main() -> None:
           f"{len(city.areas)} areas, {len(city.trees)} trees, {len(city.lamps)} lamps")
     hm = fetch_heightmap()
     meta = export_city(city, args.out, hm=hm)
-    print(f"exported {len(meta['tiles'])} tiles, {len(meta['streets'])} named streets -> {args.out}")
+    print(f"exported {len(meta['tiles'])} tiles, {len(meta['streets']['names'])} named streets -> {args.out}")
 
 if __name__ == "__main__":
     main()
