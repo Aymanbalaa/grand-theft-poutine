@@ -6,6 +6,8 @@ var _tiles: Array[Dictionary] = []   # {node: Node3D, center: Vector3}
 var _tile_size := 256.0
 var _camera: Camera3D
 var _city_mat := _make_city_material()
+var _building_mat := _make_shader_material("res://shaders/building_windows.gdshader")
+var _water_mat := _make_shader_material("res://shaders/water.gdshader")
 
 static func _make_city_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -14,9 +16,23 @@ static func _make_city_material() -> StandardMaterial3D:
 	m.roughness = 1.0
 	return m
 
+static func _make_shader_material(path: String) -> ShaderMaterial:
+	if not ResourceLoader.exists(path):
+		return null
+	var m := ShaderMaterial.new()
+	m.shader = load(path)
+	return m
+
 func _apply_city_material(node: Node) -> void:
 	for mi in node.find_children("*", "MeshInstance3D", true, false):
-		(mi as MeshInstance3D).material_override = _city_mat
+		var inst := mi as MeshInstance3D
+		var n := inst.name.to_lower()
+		if _building_mat != null and n.begins_with("buildings"):
+			inst.material_override = _building_mat
+		elif _water_mat != null and n.begins_with("water"):
+			inst.material_override = _water_mat
+		else:
+			inst.material_override = _city_mat
 
 func _ready() -> void:
 	var meta_file := FileAccess.open("res://world/city_metadata.json", FileAccess.READ)
