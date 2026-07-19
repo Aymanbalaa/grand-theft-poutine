@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/fly_camera.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/tile_loader.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/day_night.gd" id="3"]
 
 [sub_resource type="Environment" id="env1"]
 background_mode = 1
@@ -9,6 +10,9 @@ background_color = Color(0.75, 0.82, 0.9, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.8, 0.8, 0.85, 1)
 ambient_light_energy = 0.6
+fog_enabled = true
+fog_light_color = Color(0.75, 0.82, 0.9, 1)
+fog_density = 0.0004
 
 [sub_resource type="StandardMaterial3D" id="ground_mat"]
 albedo_color = Color(0.62, 0.63, 0.6, 1)
@@ -30,6 +34,7 @@ mesh = SubResource("ground_mesh")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, -0.353, 0.353, 0, 0.707, 0.707, -0.5, -0.612, 0.612, 0, 0, 0)
 shadow_enabled = true
+script = ExtResource("3")
 
 [node name="TileLoader" type="Node3D" parent="."]
 script = ExtResource("2")
