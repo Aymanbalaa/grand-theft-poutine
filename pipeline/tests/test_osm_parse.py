@@ -68,3 +68,8 @@ def test_relation_clipped_to_bbox():
     for a in city.areas:
         for x, z in a.outline:
             assert x_min - pad <= x <= x_max + pad and z_min - pad <= z <= z_max + pad
+
+def test_trees_and_lamps_parsed():
+    city = parse_osm(FIX)
+    assert len(city.trees) == 2
+    assert len(city.lamps) == 1

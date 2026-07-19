@@ -13,7 +13,8 @@ def main() -> None:
     args = ap.parse_args()
     xml = Path(args.input) if args.input else fetch_osm()
     city = parse_osm(xml)
-    print(f"parsed: {len(city.roads)} roads, {len(city.buildings)} buildings, {len(city.areas)} areas")
+    print(f"parsed: {len(city.roads)} roads, {len(city.buildings)} buildings, "
+          f"{len(city.areas)} areas, {len(city.trees)} trees, {len(city.lamps)} lamps")
     hm = fetch_heightmap()
     meta = export_city(city, args.out, hm=hm)
     print(f"exported {len(meta['tiles'])} tiles, {len(meta['streets'])} named streets -> {args.out}")

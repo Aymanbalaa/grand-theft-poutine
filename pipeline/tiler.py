@@ -8,7 +8,7 @@ from shapely.prepared import prep
 from pipeline import config
 from pipeline.geo import latlon_to_xz
 from pipeline.osm_parse import CityData
-from pipeline.meshes import building_mesh, road_mesh, area_piece_mesh, terrain_tile_mesh
+from pipeline.meshes import building_mesh, road_mesh, area_piece_mesh, terrain_tile_mesh, tree_mesh, lamp_mesh
 
 def assign_tile(x: float, z: float) -> tuple[int, int]:
     return (math.floor(x / config.TILE_SIZE), math.floor(z / config.TILE_SIZE))
@@ -64,6 +64,18 @@ def build_tiles(city: CityData, hm=None) -> dict[tuple[int, int], trimesh.Scene]
                 if m is not None:
                     buckets[(tx, tz)][a.kind].append(m)
 
+    tree_count: dict[tuple[int, int], int] = defaultdict(int)
+    for i, (x, z) in enumerate(city.trees):
+        key = assign_tile(x, z)
+        if tree_count[key] >= config.MAX_TREES_PER_TILE:
+            continue
+        tree_count[key] += 1
+        y = hm.sample(x, z) if hm is not None else 0.0
+        buckets[key]["props"].append(tree_mesh(x, z, y, i))
+    for x, z in city.lamps:
+        y = hm.sample(x, z) if hm is not None else 0.0
+        buckets[assign_tile(x, z)]["props"].append(lamp_mesh(x, z, y))
+
     water_geom = green_geom = None
     keys = set(buckets)
     if hm is not None:
@@ -75,7 +87,7 @@ def build_tiles(city: CityData, hm=None) -> dict[tuple[int, int], trimesh.Scene]
     for key in sorted(keys):
         scene = trimesh.Scene()
         total_tris = 0
-        for cat in ("buildings", "roads", "water", "green"):
+        for cat in ("buildings", "roads", "water", "green", "props"):
             if buckets[key][cat]:
                 merged = trimesh.util.concatenate(buckets[key][cat])
                 total_tris += len(merged.faces)

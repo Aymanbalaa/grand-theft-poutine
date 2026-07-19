@@ -16,6 +16,9 @@
   <node id="31" lat="45.5052" lon="-73.5518"/>
   <node id="32" lat="45.5056" lon="-73.5518"/>
   <node id="33" lat="45.5056" lon="-73.5525"/>
+  <node id="50" lat="45.5042" lon="-73.5550"><tag k="natural" v="tree"/></node>
+  <node id="51" lat="45.5043" lon="-73.5548"><tag k="natural" v="tree"/></node>
+  <node id="52" lat="45.5041" lon="-73.5552"><tag k="highway" v="street_lamp"/></node>
   <way id="100">
     <nd ref="1"/><nd ref="2"/>
     <tag k="highway" v="primary"/><tag k="name" v="Rue Sainte-Catherine"/>

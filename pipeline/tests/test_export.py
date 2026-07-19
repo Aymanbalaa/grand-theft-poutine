@@ -58,3 +58,21 @@ def test_build_tiles_with_heightmap_has_terrain_everywhere():
     tiles = build_tiles(city, hm=hm)
     assert len(tiles) >= 200  # full bbox range gets terrain tiles
     assert all("terrain" in scene.geometry for scene in tiles.values())
+
+def test_props_geometry_in_tiles():
+    city = parse_osm(FIX)
+    tiles = build_tiles(city)
+    names = {n for scene in tiles.values() for n in scene.geometry}
+    assert "props" in names
+
+def test_tree_cap_deterministic(monkeypatch):
+    from pipeline import config
+    monkeypatch.setattr(config, "MAX_TREES_PER_TILE", 1)
+    city = parse_osm(FIX)
+    t1 = build_tiles(city)
+    t2 = build_tiles(city)
+    for k in t1:
+        if "props" in t1[k].geometry:
+            a = t1[k].geometry["props"].vertices
+            b = t2[k].geometry["props"].vertices
+            assert (a == b).all()

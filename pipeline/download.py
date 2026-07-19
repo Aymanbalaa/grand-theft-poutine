@@ -33,6 +33,8 @@ def _query() -> str:
   relation["waterway"="riverbank"]({bbox});
   relation["leisure"~"park|garden"]({bbox});
   relation["landuse"~"grass|forest|recreation_ground"]({bbox});
+  node["natural"="tree"]({bbox});
+  node["highway"="street_lamp"]({bbox});
 );
 (._;>;);
 out body;

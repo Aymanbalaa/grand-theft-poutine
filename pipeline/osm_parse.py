@@ -35,6 +35,8 @@ class CityData:
     roads: list[Road] = field(default_factory=list)
     buildings: list[Building] = field(default_factory=list)
     areas: list[Area] = field(default_factory=list)
+    trees: list[tuple[float, float]] = field(default_factory=list)
+    lamps: list[tuple[float, float]] = field(default_factory=list)
 
 _NUM = re.compile(r"[-+]?\d*\.?\d+")
 
@@ -115,11 +117,20 @@ def _add_relation_areas(city: CityData, rel_id: int, kind: str,
 
 def parse_osm(xml_path: str | Path) -> CityData:
     nodes: dict[int, tuple[float, float]] = {}
+    tree_ids: dict[int, tuple[float, float]] = {}
+    lamp_ids: dict[int, tuple[float, float]] = {}
     way_refs: dict[int, list[int]] = {}
     city = CityData()
     for _, el in ET.iterparse(str(xml_path), events=("end",)):
         if el.tag == "node":
-            nodes[int(el.get("id"))] = (float(el.get("lat")), float(el.get("lon")))
+            nid = int(el.get("id"))
+            nodes[nid] = (float(el.get("lat")), float(el.get("lon")))
+            if el.find("tag") is not None:
+                tags = {t.get("k"): t.get("v") for t in el.findall("tag")}
+                if tags.get("natural") == "tree":
+                    tree_ids[nid] = nodes[nid]
+                elif tags.get("highway") == "street_lamp":
+                    lamp_ids[nid] = nodes[nid]
         elif el.tag == "way":
             wid = int(el.get("id"))
             tags = {t.get("k"): t.get("v") for t in el.findall("tag")}
@@ -156,4 +167,6 @@ def parse_osm(xml_path: str | Path) -> CityData:
     city.roads.sort(key=lambda r: r.osm_id)
     city.buildings.sort(key=lambda b: b.osm_id)
     city.areas.sort(key=lambda a: a.osm_id)
+    city.trees = [latlon_to_xz(*tree_ids[i]) for i in sorted(tree_ids)]
+    city.lamps = [latlon_to_xz(*lamp_ids[i]) for i in sorted(lamp_ids)]
     return city

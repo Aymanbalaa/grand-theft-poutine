@@ -71,3 +71,10 @@ LANDMARKS = [
     {"key": "habitat67",  "name": "Habitat 67",             "lat": 45.49987, "lon": -73.54365, "clear": 90},
     {"key": "five_roses", "name": "Farine Five Roses",      "lat": 45.4922, "lon": -73.5545, "clear": 60},
 ]
+
+# --- M3.5 Task 3: street trees & lamps ---
+MAX_TREES_PER_TILE = 300
+TREE_CANOPY_COLORS = ((58, 110, 52), (74, 124, 58))
+TREE_TRUNK_COLOR = (92, 64, 40)
+LAMP_POLE_COLOR = (70, 72, 76)
+LAMP_HEAD_COLOR = (255, 214, 130)
