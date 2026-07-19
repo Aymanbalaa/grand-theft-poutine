@@ -2,6 +2,8 @@ extends SceneTree
 # Headless smoke test: main scene loads, tiles instantiate.
 # Run: tools/godot/godot.exe --headless --path game --script res://tests/smoke_test.gd
 
+const _player_preload = preload("res://scripts/player.gd")
+
 func _init() -> void:
 	var scene: PackedScene = load("res://scenes/main.tscn")
 	if scene == null:
@@ -23,5 +25,18 @@ func _init() -> void:
 		push_error("FAIL: Camera3D node named 'Camera' missing from main scene")
 		quit(1)
 		return
+	var player_scene: PackedScene = load("res://scenes/player.tscn")
+	if player_scene == null:
+		push_error("FAIL: player.tscn did not load")
+		quit(1)
+		return
+	var player = player_scene.instantiate()
+	get_root().add_child(player)
+	await process_frame
+	if not InputMap.has_action("move_forward") or not InputMap.has_action("toggle_fly"):
+		push_error("FAIL: player input actions not registered")
+		quit(1)
+		return
+	print("PLAYER OK")
 	print("SMOKE OK: %d tiles" % loader.loaded_tile_count())
 	quit(0)
