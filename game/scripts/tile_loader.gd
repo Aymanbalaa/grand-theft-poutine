@@ -35,8 +35,10 @@ func _process(_delta: float) -> void:
 		if _camera == null:
 			return
 	var cam_pos := _camera.global_position
+	var cam_xz := Vector2(cam_pos.x, cam_pos.z)
 	for t in _tiles:
-		var visible_now: bool = t["center"].distance_to(cam_pos) < view_distance + _tile_size
+		var center: Vector3 = t["center"]
+		var visible_now: bool = Vector2(center.x, center.z).distance_to(cam_xz) < view_distance + _tile_size
 		(t["node"] as Node3D).visible = visible_now
 
 func loaded_tile_count() -> int:
