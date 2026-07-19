@@ -25,7 +25,7 @@ func _init() -> void:
 		push_error("FAIL: Camera3D node named 'Camera' missing from main scene")
 		quit(1)
 		return
-	var player := root.get_node_or_null("Player")
+	var player := root.get_node_or_null("Player") as Player
 	if player == null:
 		push_error("FAIL: Player missing from main scene")
 		quit(1)

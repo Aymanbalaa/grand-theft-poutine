@@ -5,7 +5,7 @@ extends Node3D
 
 var _yaw := 0.0
 var _pitch := -0.2
-@onready var _player = get_parent()
+@onready var _player := get_parent() as Player
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

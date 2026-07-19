@@ -1,7 +1,7 @@
 extends Node3D
 # Root wiring: spawn the player from metadata, own the fly/player camera toggle.
 
-@onready var _player = $Player
+@onready var _player := $Player as Player
 @onready var _fly_cam := $Camera as Camera3D
 
 func _ready() -> void:
