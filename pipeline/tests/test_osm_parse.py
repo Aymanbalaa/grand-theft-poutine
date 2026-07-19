@@ -35,3 +35,9 @@ def test_zero_or_junk_height_falls_through():
     assert _building_height({"height": "abc"}) == 10.0
     assert _building_height({"height": "-5"}) == 10.0
     assert _building_height({"height": "-5", "building:levels": "3"}) == 3 * 3.2
+
+def test_road_class_and_btype_carried():
+    city = parse_osm(FIX)
+    ste_cath = next(r for r in city.roads if r.name == "Rue Sainte-Catherine")
+    assert ste_cath.road_class == "primary"
+    assert sorted(b.btype for b in city.buildings) == ["apartments", "yes"]
