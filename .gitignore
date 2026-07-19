@@ -7,3 +7,4 @@ game/.godot/
 *.import
 .pytest_cache/
 .superpowers/
+*.log
