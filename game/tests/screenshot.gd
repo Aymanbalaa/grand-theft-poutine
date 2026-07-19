@@ -3,9 +3,11 @@ extends SceneTree
 # Run: tools/godot/godot.exe --path game --script res://tests/screenshot.gd
 
 const POSES := [
-	{"name": "overview", "pos": Vector3(0, 600, 400), "look": Vector3(0, 0, 0)},
-	{"name": "street",   "pos": Vector3(50, 40, 100),  "look": Vector3(0, 10, -200)},
-	{"name": "oldport",  "pos": Vector3(800, 120, 900), "look": Vector3(400, 0, 400)},
+	{"name": "overview",  "pos": Vector3(0, 600, 400),      "look": Vector3(0, 0, 0)},
+	{"name": "street",    "pos": Vector3(50, 40, 100),      "look": Vector3(0, 10, -200)},
+	{"name": "oldport",   "pos": Vector3(800, 120, 900),    "look": Vector3(400, 0, 400)},
+	{"name": "mountain",  "pos": Vector3(-1200, 250, -200), "look": Vector3(-2200, 150, -250)},
+	{"name": "biosphere", "pos": Vector3(1250, 120, -800),  "look": Vector3(1600, 30, -1117)},
 ]
 
 func _init() -> void:

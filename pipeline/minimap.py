@@ -7,6 +7,7 @@ from pipeline.osm_parse import CityData
 
 BG = (34, 36, 40)
 GOLD = (230, 190, 80)
+ROAD = (150, 148, 152)  # light so streets read against the dark background
 
 def render_minimap(city: CityData, out_path: str | Path, size: int = 2048) -> dict:
     s, w, n, e = config.BBOX
@@ -27,9 +28,8 @@ def render_minimap(city: CityData, out_path: str | Path, size: int = 2048) -> di
                 if len(hole) >= 3:
                     d.polygon([px(x, z) for x, z in hole], fill=BG)
     for r in city.roads:
-        color = config.ROAD_COLORS.get(r.road_class, config.DEFAULT_ROAD_COLOR)
         width = max(1, round(r.width * scale))
-        d.line([px(x, z) for x, z in r.points], fill=color, width=width)
+        d.line([px(x, z) for x, z in r.points], fill=ROAD, width=width)
     for lm in config.LANDMARKS:
         cx, cz = px(*latlon_to_xz(lm["lat"], lm["lon"]))
         rr = max(3, size // 340)
