@@ -162,3 +162,33 @@ def test_sidewalk_faces_point_up():
     ny = m.face_normals[:, 1]
     assert ny.min() > -0.05          # nothing faces downward (CULL_BACK would hide it)
     assert (ny > 0.9).sum() >= 2     # flat walkable tops present on both sides
+
+def test_roadmarks_dashed_centerline():
+    from pipeline.meshes import roadmark_mesh
+    from pipeline import config
+    m = roadmark_mesh(_mk_road())          # residential: centerline only
+    assert m is not None
+    assert len(m.faces) % 2 == 0
+    n_dashes = len(m.faces) // 2
+    usable = 60.0 - 2 * config.SIDEWALK_END_TRIM
+    assert 1 <= n_dashes <= int(usable / config.MARK_PERIOD) + 1
+    assert abs(m.vertices[:, 1].max() - (0.05 + config.MARK_LIFT)) < 0.005
+    assert abs(m.vertices[:, 2]).max() <= config.MARK_WIDTH / 2 + 1e-6
+
+def test_roadmarks_edge_lines_on_primary():
+    from pipeline.meshes import roadmark_mesh
+    m_res = roadmark_mesh(_mk_road("residential"))
+    m_pri = roadmark_mesh(_mk_road("primary", width=10.0))
+    assert len(m_pri.faces) > len(m_res.faces)          # edge lines added
+    assert abs(m_pri.vertices[:, 2]).max() > 4.0        # near ±(5.0 - 0.45)
+
+def test_roadmarks_skip_unnamed_and_footways():
+    from pipeline.meshes import roadmark_mesh
+    from pipeline.osm_parse import Road
+    assert roadmark_mesh(Road(1, None, [(0, 0), (60, 0)], 6.0, "residential")) is None
+    assert roadmark_mesh(Road(2, "x", [(0, 0), (60, 0)], 2.0, "footway")) is None
+
+def test_roadmarks_faces_point_up():
+    from pipeline.meshes import roadmark_mesh
+    m = roadmark_mesh(_mk_road("primary", width=10.0))
+    assert m.face_normals[:, 1].min() > 0.9   # every mark quad faces up

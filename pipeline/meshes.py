@@ -199,6 +199,60 @@ def sidewalk_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | Non
     mesh = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
     return _paint(mesh, config.SIDEWALK_COLOR)
 
+def _strip_quads(pts: list[tuple[float, float]], offset: float, width: float,
+                 h, verts: list, faces: list) -> None:
+    """Constant-lateral-offset ribbon of quads along pts (offset 0 = centerline)."""
+    for (x1, z1), (x2, z2) in zip(pts[:-1], pts[1:]):
+        d = np.array([x2 - x1, z2 - z1])
+        n = np.linalg.norm(d)
+        if n < 1e-6:
+            continue
+        px, pz = -d[1] / n, d[0] / n
+        hw = width / 2.0
+        i = len(verts)
+        for (x, z) in ((x1, z1), (x2, z2)):
+            y = h(x, z)
+            cx, cz = x + px * offset, z + pz * offset
+            verts += [[cx + px * hw, y, cz + pz * hw], [cx - px * hw, y, cz - pz * hw]]
+        faces += [[i, i + 2, i + 1], [i + 1, i + 2, i + 3]]
+
+def roadmark_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
+    if r.road_class not in config.ROADMARK_CLASSES or not r.name:
+        return None
+    line = LineString(r.points)
+    lo, hi = config.SIDEWALK_END_TRIM, line.length - config.SIDEWALK_END_TRIM
+    if hi - lo < config.MARK_DASH:
+        return None
+    def h(x: float, z: float) -> float:
+        return 0.05 + config.MARK_LIFT + (hm.sample(x, z) if hm is not None else 0.0)
+    parts = []
+    # yellow dashed centerline
+    verts, faces = [], []
+    t = lo
+    while t + config.MARK_DASH <= hi:
+        seg = _polyline_slice(r.points, t, t + config.MARK_DASH)
+        if len(seg) >= 2:
+            _strip_quads(_densify(seg), 0.0, config.MARK_WIDTH, h, verts, faces)
+        t += config.MARK_PERIOD
+    if faces:
+        parts.append(_paint(trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces),
+                                            process=False), config.MARK_YELLOW))
+    # white edge lines on arterials
+    if r.road_class in config.EDGE_LINE_CLASSES:
+        everts, efaces = [], []
+        span = _densify(_polyline_slice(r.points, lo, hi))
+        if len(span) >= 2:
+            off = r.width / 2.0 - 0.45
+            _strip_quads(span, off, 0.10, h, everts, efaces)
+            _strip_quads(span, -off, 0.10, h, everts, efaces)
+        if efaces:
+            parts.append(_paint(trimesh.Trimesh(vertices=np.array(everts),
+                                                faces=np.array(efaces), process=False),
+                                config.MARK_WHITE))
+    if not parts:
+        return None
+    return trimesh.util.concatenate(parts)
+
 def area_piece_mesh(geom, kind: str, y: float = 0.02,
                     hm: Heightmap | None = None,
                     flat_y: float | None = None) -> trimesh.Trimesh | None:

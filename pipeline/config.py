@@ -123,3 +123,12 @@ SIDEWALK_RAISE = 0.12
 CURB_RUN = 0.18            # horizontal run of the curb face (~33 deg -> climbable)
 SIDEWALK_END_TRIM = 8.0    # skip near way ends = intersection clearance
 SIDEWALK_COLOR = (168, 164, 156)
+
+ROADMARK_CLASSES = ("primary", "secondary", "tertiary", "residential")
+EDGE_LINE_CLASSES = ("primary", "secondary")
+MARK_DASH = 3.0
+MARK_PERIOD = 9.0
+MARK_WIDTH = 0.15
+MARK_LIFT = 0.02
+MARK_YELLOW = (196, 164, 48)
+MARK_WHITE = (208, 208, 204)
