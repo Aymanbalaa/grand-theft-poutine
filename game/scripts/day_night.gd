@@ -5,16 +5,19 @@ extends DirectionalLight3D
 @export var day_length_sec := 600.0
 @export var time_of_day := 0.35
 
-const DAY_TOP := Color(0.35, 0.55, 0.8)
-const DAY_HOR := Color(0.75, 0.82, 0.9)
-const NIGHT_TOP := Color(0.02, 0.03, 0.08)
-const NIGHT_HOR := Color(0.08, 0.1, 0.18)
-const DUSK_HOR := Color(1.0, 0.45, 0.2)
+const DAY_TOP := Color(0.32, 0.55, 0.85)
+const DAY_HOR := Color(0.78, 0.86, 0.94)
+const NIGHT_TOP := Color(0.015, 0.025, 0.07)
+const NIGHT_HOR := Color(0.07, 0.09, 0.16)
+const DUSK_HOR := Color(1.0, 0.5, 0.22)
+
+var night_amount := 0.0
 
 var _env: Environment
 var _sky_mat: ProceduralSkyMaterial
 
 func _ready() -> void:
+	add_to_group("sun")
 	var we := get_node_or_null("../WorldEnvironment") as WorldEnvironment
 	if we != null:
 		_env = we.environment
@@ -29,9 +32,10 @@ func _process(delta: float) -> void:
 	var daylight := clampf(s * 1.5, 0.0, 1.0)
 	var dusk := clampf(1.0 - absf(s) * 2.5, 0.0, 1.0)
 	rotation_degrees = Vector3(-6.0 - 78.0 * maxf(s, 0.0), 40.0 + 360.0 * time_of_day, 0.0)
-	light_energy = 0.02 + 1.55 * daylight
-	light_color = Color(1.0, 0.72 + 0.28 * daylight, 0.5 + 0.5 * daylight)
-	RenderingServer.global_shader_parameter_set("night_amount", 1.0 - daylight)
+	light_energy = 0.02 + 2.7 * daylight
+	light_color = Color(1.0, 0.82 + 0.16 * daylight, 0.62 + 0.33 * daylight)
+	night_amount = 1.0 - daylight
+	RenderingServer.global_shader_parameter_set("night_amount", night_amount)
 	var horizon := NIGHT_HOR.lerp(DAY_HOR, daylight).lerp(DUSK_HOR, dusk)
 	if _sky_mat != null:
 		_sky_mat.sky_top_color = NIGHT_TOP.lerp(DAY_TOP, daylight)
@@ -39,4 +43,4 @@ func _process(delta: float) -> void:
 		_sky_mat.ground_horizon_color = horizon
 	if _env != null:
 		_env.fog_light_color = horizon
-		_env.ambient_light_energy = 0.2 + 0.3 * daylight
+		_env.ambient_light_energy = 0.18 + 0.62 * daylight
