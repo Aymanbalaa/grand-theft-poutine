@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/fly_camera.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/tile_loader.gd" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/main.gd" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="7"]
 [ext_resource type="Script" path="res://scripts/hud.gd" id="8"]
+[ext_resource type="Script" path="res://scripts/light_pool.gd" id="9"]
 
 [sub_resource type="ProceduralSkyMaterial" id="sky_mat"]
 sky_top_color = Color(0.35, 0.55, 0.8, 1)
@@ -62,6 +63,9 @@ script = ExtResource("3")
 script = ExtResource("2")
 
 [node name="Cars" type="Node3D" parent="."]
+
+[node name="LightPool" type="Node3D" parent="."]
+script = ExtResource("9")
 
 [node name="Camera" type="Camera3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 150, 200)

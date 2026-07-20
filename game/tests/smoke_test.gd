@@ -75,6 +75,13 @@ func _init() -> void:
 		quit(1)
 		return
 	print("CARS OK: %d" % cars.get_child_count())
+	var pool := root.get_node_or_null("LightPool")
+	if pool == null or pool.call("lamp_count") < 400 or pool.get_child_count() != 24:
+		var lc: int = -1 if pool == null else pool.call("lamp_count")
+		push_error("FAIL: light pool missing or lamps not loaded (lamps=%d)" % lc)
+		quit(1)
+		return
+	print("LIGHTS OK: %d lamps" % pool.call("lamp_count"))
 	var drive_car := cars.get_child(0) as Car
 	player.global_position = drive_car.global_position + Vector3(2.5, 1.0, 0)
 	await physics_frame
