@@ -135,6 +135,68 @@ def road_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
     mesh = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
     return _paint(mesh, config.ROAD_COLORS.get(r.road_class, config.DEFAULT_ROAD_COLOR))
 
+def _polyline_slice(points: list[tuple[float, float]], start: float, end: float
+                    ) -> list[tuple[float, float]]:
+    """Sub-polyline between arclengths [start, end], densified endpoints included."""
+    out: list[tuple[float, float]] = []
+    acc = 0.0
+    for (x1, z1), (x2, z2) in zip(points[:-1], points[1:]):
+        seg = math.hypot(x2 - x1, z2 - z1)
+        if seg < 1e-9:
+            continue
+        a0, a1 = acc, acc + seg
+        lo, hi = max(a0, start), min(a1, end)
+        if lo < hi:
+            for t in (lo, hi) if not out else (hi,):
+                f = (t - a0) / seg
+                out.append((x1 + (x2 - x1) * f, z1 + (z2 - z1) * f))
+        acc = a1
+    return out
+
+def sidewalk_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
+    if r.road_class not in config.SIDEWALK_CLASSES or r.width <= 0:
+        return None
+    line = LineString(r.points)
+    usable = line.length - 2 * config.SIDEWALK_END_TRIM
+    if usable < 4.0:
+        return None
+    pts = _densify(_polyline_slice(r.points, config.SIDEWALK_END_TRIM,
+                                   line.length - config.SIDEWALK_END_TRIM))
+    jitter = ((r.osm_id * 2654435761) % 5 - 2) * 0.001  # -2..+2 mm
+    def h(x: float, z: float) -> float:
+        return 0.05 + jitter + (hm.sample(x, z) if hm is not None else 0.0)
+    hw = r.width / 2.0
+    raise_y = config.SIDEWALK_RAISE
+    verts, faces = [], []
+    for side in (1.0, -1.0):
+        for (x1, z1), (x2, z2) in zip(pts[:-1], pts[1:]):
+            d = np.array([x2 - x1, z2 - z1])
+            n = np.linalg.norm(d)
+            if n < 1e-6:
+                continue
+            px, pz = side * -d[1] / n, side * d[0] / n
+            i = len(verts)
+            for (x, z) in ((x1, z1), (x2, z2)):
+                y = h(x, z)
+                verts += [
+                    [x + px * hw, y, z + pz * hw],                                            # 0 curb bottom
+                    [x + px * (hw + config.CURB_RUN), y + raise_y, z + pz * (hw + config.CURB_RUN)],  # 1 curb top
+                    [x + px * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH), y + raise_y,
+                     z + pz * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH)],                # 2 outer top
+                    [x + px * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH), y - 0.3,
+                     z + pz * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH)],                # 3 outer skirt
+                ]
+            for k in range(3):
+                a, b = i + k, i + 4 + k
+                if side > 0:
+                    faces += [[a, b, a + 1], [a + 1, b, b + 1]]
+                else:
+                    faces += [[a, a + 1, b], [a + 1, b + 1, b]]
+    if not faces:
+        return None
+    mesh = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
+    return _paint(mesh, config.SIDEWALK_COLOR)
+
 def area_piece_mesh(geom, kind: str, y: float = 0.02,
                     hm: Heightmap | None = None,
                     flat_y: float | None = None) -> trimesh.Trimesh | None:

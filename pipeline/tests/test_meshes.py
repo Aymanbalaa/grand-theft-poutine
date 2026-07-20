@@ -125,3 +125,33 @@ def test_building_walls_encode_category_alpha():
     b2 = Building(2, [(0, 0), (20, 0), (20, 12), (0, 12)], 20.0, "house")
     alphas2 = set(int(a) for a in building_mesh(b2).visual.vertex_colors[:, 3])
     assert config.WALL_CATEGORY_ALPHA["residential"] in alphas2
+
+def _mk_road(cls="residential", width=6.0):
+    from pipeline.osm_parse import Road
+    return Road(7, "Rue Test", [(0.0, 0.0), (60.0, 0.0)], width, cls)
+
+def test_sidewalk_raised_and_trimmed():
+    from pipeline.meshes import sidewalk_mesh
+    from pipeline import config
+    m = sidewalk_mesh(_mk_road())
+    assert m is not None
+    xs = m.vertices[:, 0]
+    ys = m.vertices[:, 1]
+    assert xs.min() >= config.SIDEWALK_END_TRIM - 1e-6          # end trim applied
+    assert xs.max() <= 60.0 - config.SIDEWALK_END_TRIM + 1e-6
+    top = ys.max()
+    assert abs(top - (0.05 + config.SIDEWALK_RAISE)) < 0.01     # raised over road drape
+    zs = abs(m.vertices[:, 2])
+    assert zs.max() <= 6.0 / 2 + config.CURB_RUN + config.SIDEWALK_WIDTH + 1e-6
+
+def test_sidewalk_skips_short_and_excluded():
+    from pipeline.meshes import sidewalk_mesh
+    from pipeline.osm_parse import Road
+    assert sidewalk_mesh(Road(8, None, [(0, 0), (10, 0)], 6.0, "residential")) is None  # < 2*trim
+    assert sidewalk_mesh(Road(9, "x", [(0, 0), (60, 0)], 2.0, "footway")) is None       # class excluded
+
+def test_sidewalk_deterministic():
+    from pipeline.meshes import sidewalk_mesh
+    a = sidewalk_mesh(_mk_road())
+    b = sidewalk_mesh(_mk_road())
+    assert (a.vertices == b.vertices).all() and (a.faces == b.faces).all()

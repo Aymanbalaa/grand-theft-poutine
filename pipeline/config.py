@@ -115,3 +115,11 @@ TEXTURE_SLOTS = {
 }
 AMBIENTCG_DL = "https://ambientcg.com/get?file={id}_1K-JPG.zip"
 AMBIENTCG_API = "https://ambientcg.com/api/v2/full_json?type=Material&include=downloadData&q={q}"
+
+# --- M6a sidewalks & road markings ---
+SIDEWALK_CLASSES = ("primary", "secondary", "tertiary", "residential", "unclassified")
+SIDEWALK_WIDTH = 2.0
+SIDEWALK_RAISE = 0.12
+CURB_RUN = 0.18            # horizontal run of the curb face (~33 deg -> climbable)
+SIDEWALK_END_TRIM = 8.0    # skip near way ends = intersection clearance
+SIDEWALK_COLOR = (168, 164, 156)
