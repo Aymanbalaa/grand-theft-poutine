@@ -1,7 +1,9 @@
+import hashlib
 import io
 import json
 import zipfile
 from pathlib import Path
+import pytest
 from pipeline import config
 from pipeline.textures import ensure_textures
 
@@ -42,7 +44,57 @@ def test_cache_hit_skips_network(tmp_path):
     assert (tmp_path / "o2" / "asphalt_alb.jpg").exists()
 
 def test_lock_records_sha256(tmp_path):
-    ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o", fetch=_fetch_ok)
-    lock = json.loads((tmp_path / "c" / "textures.lock.json").read_text())
+    cache_dir = tmp_path / "c"
+    ensure_textures(cache_dir=cache_dir, out_dir=tmp_path / "o", fetch=_fetch_ok)
+    lock = json.loads((cache_dir / "textures.lock.json").read_text())
     for slot in config.TEXTURE_SLOTS:
         assert len(lock[slot]["sha256"]) == 64
+    entry = lock["asphalt"]
+    zpath = cache_dir / f"{entry['id']}.zip"
+    assert entry["sha256"] == hashlib.sha256(zpath.read_bytes()).hexdigest()
+
+def test_preferred_change_invalidates_cache(tmp_path, monkeypatch):
+    ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o", fetch=_fetch_ok)
+    monkeypatch.setitem(config.TEXTURE_SLOTS, "brick",
+                         {**config.TEXTURE_SLOTS["brick"], "preferred": "BricksZZZ"})
+
+    def fetch(url):
+        if "BricksZZZ" in url:
+            return _fake_zip("BricksZZZ")
+        return _fetch_ok(url)
+
+    ids = ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o", fetch=fetch)
+    assert ids["brick"] == "BricksZZZ"
+    assert b"Color" in (tmp_path / "o" / "brick_alb.jpg").read_bytes()
+    lock = json.loads((tmp_path / "c" / "textures.lock.json").read_text())
+    assert lock["brick"]["id"] == "BricksZZZ"
+
+def test_api_fallback_when_preferred_missing(tmp_path):
+    roof_preferred = config.TEXTURE_SLOTS["roof"]["preferred"]
+
+    def fetch(url):
+        if roof_preferred in url and "api/v2/full_json" not in url:
+            raise RuntimeError("preferred download failed")
+        if "api/v2/full_json" in url:
+            return json.dumps({"foundAssets": [{"assetId": "FallbackX"}]}).encode()
+        if "FallbackX" in url:
+            return _fake_zip("FallbackX")
+        return _fetch_ok(url)
+
+    ids = ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o", fetch=fetch)
+    assert ids["roof"] == "FallbackX"
+    lock = json.loads((tmp_path / "c" / "textures.lock.json").read_text())
+    assert lock["roof"]["id"] == "FallbackX"
+
+def test_missing_map_raises(tmp_path):
+    def fetch(url):
+        if config.TEXTURE_SLOTS["asphalt"]["preferred"] in url:
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as z:
+                for m in ("Color", "NormalGL"):
+                    z.writestr(f"Asphalt_1K-JPG_{m}.jpg", b"\xff\xd8\xff fake " + m.encode())
+            return buf.getvalue()
+        return _fetch_ok(url)
+
+    with pytest.raises(RuntimeError, match="Roughness"):
+        ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o", fetch=fetch)

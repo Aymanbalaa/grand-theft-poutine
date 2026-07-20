@@ -54,7 +54,8 @@ def ensure_textures(cache_dir="data/textures", out_dir="game/assets/textures/pbr
     for slot, spec in sorted(config.TEXTURE_SLOTS.items()):
         entry = lock.get(slot)
         zpath = cache / f"{entry['id']}.zip" if entry else None
-        if entry and zpath.exists() and hashlib.sha256(zpath.read_bytes()).hexdigest() == entry["sha256"]:
+        if (entry and entry["id"] == spec["preferred"] and zpath.exists()
+                and hashlib.sha256(zpath.read_bytes()).hexdigest() == entry["sha256"]):
             asset_id = entry["id"]
         else:
             asset_id = spec["preferred"]

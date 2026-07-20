@@ -105,7 +105,7 @@ TEXTURE_SLOTS = {
     "stone":    {"preferred": "Bricks075A",       "query": "stone bricks wall","maps": ["Color"]},
     "concrete": {"preferred": "Concrete034",      "query": "concrete",         "maps": ["Color"]},
     "roof":     {"preferred": "Gravel022",        "query": "gravel",           "maps": ["Color"]},
-    "asphalt":  {"preferred": "Asphalt026",       "query": "asphalt",          "maps": ["Color", "NormalGL", "Roughness"]},
+    "asphalt":  {"preferred": "Road012A",         "query": "asphalt",          "maps": ["Color", "NormalGL", "Roughness"]},
     "paving":   {"preferred": "PavingStones128",  "query": "concrete paving",  "maps": ["Color", "NormalGL", "Roughness"]},
     "ground":   {"preferred": "Ground037",        "query": "dirt ground",      "maps": ["Color", "NormalGL", "Roughness"]},
 }
