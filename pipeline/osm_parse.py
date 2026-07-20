@@ -37,6 +37,7 @@ class CityData:
     areas: list[Area] = field(default_factory=list)
     trees: list[tuple[float, float]] = field(default_factory=list)
     lamps: list[tuple[float, float]] = field(default_factory=list)
+    signals: list[tuple[float, float]] = field(default_factory=list)
 
 _NUM = re.compile(r"[-+]?\d*\.?\d+")
 
@@ -119,6 +120,7 @@ def parse_osm(xml_path: str | Path) -> CityData:
     nodes: dict[int, tuple[float, float]] = {}
     tree_ids: dict[int, tuple[float, float]] = {}
     lamp_ids: dict[int, tuple[float, float]] = {}
+    signal_ids: dict[int, tuple[float, float]] = {}
     way_refs: dict[int, list[int]] = {}
     city = CityData()
     for _, el in ET.iterparse(str(xml_path), events=("end",)):
@@ -131,6 +133,8 @@ def parse_osm(xml_path: str | Path) -> CityData:
                     tree_ids[nid] = nodes[nid]
                 elif tags.get("highway") == "street_lamp":
                     lamp_ids[nid] = nodes[nid]
+                elif tags.get("highway") == "traffic_signals":
+                    signal_ids[nid] = nodes[nid]
         elif el.tag == "way":
             wid = int(el.get("id"))
             tags = {t.get("k"): t.get("v") for t in el.findall("tag")}
@@ -169,4 +173,5 @@ def parse_osm(xml_path: str | Path) -> CityData:
     city.areas.sort(key=lambda a: a.osm_id)
     city.trees = [latlon_to_xz(*tree_ids[i]) for i in sorted(tree_ids)]
     city.lamps = [latlon_to_xz(*lamp_ids[i]) for i in sorted(lamp_ids)]
+    city.signals = [latlon_to_xz(*signal_ids[i]) for i in sorted(signal_ids)]
     return city

@@ -73,3 +73,9 @@ def test_trees_and_lamps_parsed():
     city = parse_osm(FIX)
     assert len(city.trees) == 2
     assert len(city.lamps) == 1
+
+def test_parses_traffic_signals():
+    city = parse_osm(FIX)
+    assert len(city.signals) == 1
+    x, z = city.signals[0]
+    assert isinstance(x, float) and isinstance(z, float)
