@@ -101,8 +101,8 @@ MAX_CAR_SPAWNS = 120
 
 # --- M6a textures (ambientCG, CC0). preferred id first, API search query as fallback. ---
 TEXTURE_SLOTS = {
-    "brick":    {"preferred": "Bricks075A",       "query": "red brick",        "maps": ["Color"]},
-    "stone":    {"preferred": "Bricks059",        "query": "stone bricks wall","maps": ["Color"]},
+    "brick":    {"preferred": "Bricks059",        "query": "red brick",        "maps": ["Color"]},
+    "stone":    {"preferred": "Bricks075A",       "query": "stone bricks wall","maps": ["Color"]},
     "concrete": {"preferred": "Concrete034",      "query": "concrete",         "maps": ["Color"]},
     "roof":     {"preferred": "Gravel022",        "query": "gravel",           "maps": ["Color"]},
     "asphalt":  {"preferred": "Asphalt026",       "query": "asphalt",          "maps": ["Color", "NormalGL", "Roughness"]},
