@@ -54,7 +54,7 @@ def ensure_textures(cache_dir="data/textures", out_dir="game/assets/textures/pbr
     for slot, spec in sorted(config.TEXTURE_SLOTS.items()):
         entry = lock.get(slot)
         zpath = cache / f"{entry['id']}.zip" if entry else None
-        if (entry and entry["id"] == spec["preferred"] and zpath.exists()
+        if (entry and entry.get("preferred") == spec["preferred"] and zpath.exists()
                 and hashlib.sha256(zpath.read_bytes()).hexdigest() == entry["sha256"]):
             asset_id = entry["id"]
         else:
@@ -67,7 +67,8 @@ def ensure_textures(cache_dir="data/textures", out_dir="game/assets/textures/pbr
             zpath = cache / f"{asset_id}.zip"
             zpath.write_bytes(blob)
             lock[slot] = {"id": asset_id, "sha256": hashlib.sha256(blob).hexdigest(),
-                          "url": config.AMBIENTCG_DL.format(id=asset_id)}
+                          "url": config.AMBIENTCG_DL.format(id=asset_id),
+                          "preferred": spec["preferred"]}
             lock_path.write_text(json.dumps(lock, indent=1, sort_keys=True))
         ids[slot] = asset_id
         with zipfile.ZipFile(zpath) as z:

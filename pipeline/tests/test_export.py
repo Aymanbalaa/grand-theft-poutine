@@ -30,6 +30,8 @@ def test_export_writes_glb_and_metadata(tmp_path):
     assert len(meta["districts"]) == 7
     assert len(meta["car_spawns"]) >= 1
     assert set(meta["car_spawns"][0]) == {"x", "y", "z", "yaw"}
+    assert len(meta["lamps"]) >= 1
+    assert all(len(p) == 3 for p in meta["lamps"])
 
 def test_export_deterministic(tmp_path):
     city = parse_osm(FIX)

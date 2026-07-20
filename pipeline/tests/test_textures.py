@@ -98,3 +98,22 @@ def test_missing_map_raises(tmp_path):
 
     with pytest.raises(RuntimeError, match="Roughness"):
         ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o", fetch=fetch)
+
+def test_fallback_then_cache_hit(tmp_path):
+    calls = []
+    def fb_fetch(url):
+        calls.append(url)
+        if "FallbackY" in url:
+            return _fake_zip("FallbackY")
+        if config.TEXTURE_SLOTS["roof"]["preferred"] in url:
+            raise RuntimeError("preferred gone")
+        if "api/v2/full_json" in url:
+            return json.dumps({"foundAssets": [{"assetId": "FallbackY"}]}).encode()
+        return _fetch_ok(url)
+    ids = ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o", fetch=fb_fetch)
+    assert ids["roof"] == "FallbackY"
+    n = len(calls)
+    def no_net(url):
+        raise AssertionError("network touched on fallback cache hit: " + url)
+    ids2 = ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o2", fetch=no_net)
+    assert ids2["roof"] == "FallbackY"

@@ -42,6 +42,8 @@ def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
         "districts": district_polys(),
         "landmarks": landmark_entries,
         "car_spawns": car_spawns(city.roads, hm),
+        "lamps": [[round(x, 1), round((hm.sample(x, z) if hm is not None else 0.0), 1), round(z, 1)]
+                  for x, z in city.lamps],
     }
     (out / "city_metadata.json").write_text(
         json.dumps(meta, sort_keys=True, indent=1), encoding="utf-8"
