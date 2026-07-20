@@ -192,3 +192,25 @@ def test_roadmarks_faces_point_up():
     from pipeline.meshes import roadmark_mesh
     m = roadmark_mesh(_mk_road("primary", width=10.0))
     assert m.face_normals[:, 1].min() > 0.9   # every mark quad faces up
+
+def test_clear_intervals_blocks_junctions():
+    from pipeline.meshes import _clear_intervals
+    pts = [(0.0, 0.0), (30.0, 0.0), (60.0, 0.0)]
+    iv = _clear_intervals(pts, {(30.0, 0.0)}, 8.0)
+    assert iv == [(8.0, 22.0), (38.0, 52.0)]
+
+def test_sidewalk_gap_at_interior_junction():
+    from pipeline.meshes import sidewalk_mesh
+    from pipeline.osm_parse import Road
+    r = Road(7, "Rue Test", [(0.0, 0.0), (30.0, 0.0), (60.0, 0.0)], 6.0, "residential")
+    m = sidewalk_mesh(r, junctions=frozenset({(30.0, 0.0)}))
+    xs = m.vertices[:, 0]
+    assert not ((xs > 23.0) & (xs < 37.0)).any()   # cleared around the junction
+
+def test_roadmarks_gap_at_interior_junction():
+    from pipeline.meshes import roadmark_mesh
+    from pipeline.osm_parse import Road
+    r = Road(7, "Rue Test", [(0.0, 0.0), (30.0, 0.0), (60.0, 0.0)], 6.0, "residential")
+    m = roadmark_mesh(r, junctions=frozenset({(30.0, 0.0)}))
+    xs = m.vertices[:, 0]
+    assert not ((xs > 23.0) & (xs < 37.0)).any()

@@ -40,12 +40,18 @@ def build_tiles(city: CityData, hm=None) -> dict[tuple[int, int], trimesh.Scene]
         m = road_mesh(r, hm)
         if m is not None:
             buckets[assign_tile(*r.points[0])]["roads"].append(m)
+    counts: dict[tuple[float, float], int] = defaultdict(int)
     for r in city.roads:
-        m = sidewalk_mesh(r, hm)
+        if r.road_class in config.SIDEWALK_CLASSES or r.road_class in config.ROADMARK_CLASSES:
+            for x, z in r.points:
+                counts[(round(x, 2), round(z, 2))] += 1
+    junctions = frozenset(k for k, v in counts.items() if v >= 2)
+    for r in city.roads:
+        m = sidewalk_mesh(r, hm, junctions=junctions)
         if m is not None:
             buckets[assign_tile(*r.points[0])]["sidewalks"].append(m)
     for r in city.roads:
-        m = roadmark_mesh(r, hm)
+        m = roadmark_mesh(r, hm, junctions=junctions)
         if m is not None:
             buckets[assign_tile(*r.points[0])]["roadmarks"].append(m)
     for a in city.areas:

@@ -153,47 +153,81 @@ def _polyline_slice(points: list[tuple[float, float]], start: float, end: float
         acc = a1
     return out
 
-def sidewalk_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
+def _clear_intervals(points: list[tuple[float, float]], junctions, trim: float
+                     ) -> list[tuple[float, float]]:
+    """Arclength intervals of the polyline that stay `trim` away from way ends
+    and from any vertex present in `junctions` (a set of (x, z) tuples)."""
+    seglens = [math.hypot(x2 - x1, z2 - z1)
+               for (x1, z1), (x2, z2) in zip(points[:-1], points[1:])]
+    L = sum(seglens)
+    blocked = [(0.0, trim), (L - trim, L)]
+    acc = 0.0
+    for i, (x, z) in enumerate(points):
+        if i > 0:
+            acc += seglens[i - 1]
+        if (round(x, 2), round(z, 2)) in junctions:
+            blocked.append((acc - trim, acc + trim))
+    merged: list[list[float]] = []
+    for b0, b1 in sorted(blocked):
+        b0, b1 = max(b0, 0.0), min(b1, L)
+        if b0 >= b1:
+            continue
+        if merged and b0 <= merged[-1][1]:
+            merged[-1][1] = max(merged[-1][1], b1)
+        else:
+            merged.append([b0, b1])
+    clear: list[tuple[float, float]] = []
+    prev = 0.0
+    for b0, b1 in merged:
+        if b0 > prev:
+            clear.append((prev, b0))
+        prev = max(prev, b1)
+    if prev < L:
+        clear.append((prev, L))
+    return clear
+
+def sidewalk_mesh(r: Road, hm: Heightmap | None = None,
+                  junctions: frozenset = frozenset()) -> trimesh.Trimesh | None:
     if r.road_class not in config.SIDEWALK_CLASSES or r.width <= 0:
         return None
-    line = LineString(r.points)
-    usable = line.length - 2 * config.SIDEWALK_END_TRIM
-    if usable < 4.0:
+    intervals = [iv for iv in _clear_intervals(r.points, junctions, config.SIDEWALK_END_TRIM)
+                if iv[1] - iv[0] >= 4.0]
+    if not intervals:
         return None
-    pts = _densify(_polyline_slice(r.points, config.SIDEWALK_END_TRIM,
-                                   line.length - config.SIDEWALK_END_TRIM))
     jitter = ((r.osm_id * 2654435761) % 5 - 2) * 0.001  # -2..+2 mm
     def h(x: float, z: float) -> float:
         return 0.05 + jitter + (hm.sample(x, z) if hm is not None else 0.0)
     hw = r.width / 2.0
     raise_y = config.SIDEWALK_RAISE
     verts, faces = [], []
-    for side in (1.0, -1.0):
-        for (x1, z1), (x2, z2) in zip(pts[:-1], pts[1:]):
-            d = np.array([x2 - x1, z2 - z1])
-            n = np.linalg.norm(d)
-            if n < 1e-6:
-                continue
-            px, pz = side * -d[1] / n, side * d[0] / n
-            i = len(verts)
-            for (x, z) in ((x1, z1), (x2, z2)):
-                y = h(x, z)
-                verts += [
-                    [x + px * hw, y, z + pz * hw],                                            # 0 curb bottom
-                    [x + px * (hw + config.CURB_RUN), y + raise_y, z + pz * (hw + config.CURB_RUN)],  # 1 curb top
-                    [x + px * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH), y + raise_y,
-                     z + pz * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH)],                # 2 outer top
-                    [x + px * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH), y - 0.3,
-                     z + pz * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH)],                # 3 outer skirt
-                ]
-            for k in range(3):
-                a, b = i + k, i + 4 + k
-                # columns run OUTWARD (opposite lateral sense to road_mesh's
-                # left->right), so side>0 takes the flipped pattern
-                if side > 0:
-                    faces += [[a, a + 1, b], [a + 1, b + 1, b]]
-                else:
-                    faces += [[a, b, a + 1], [a + 1, b, b + 1]]
+    for lo, hi in intervals:
+        pts = _densify(_polyline_slice(r.points, lo, hi))
+        for side in (1.0, -1.0):
+            for (x1, z1), (x2, z2) in zip(pts[:-1], pts[1:]):
+                d = np.array([x2 - x1, z2 - z1])
+                n = np.linalg.norm(d)
+                if n < 1e-6:
+                    continue
+                px, pz = side * -d[1] / n, side * d[0] / n
+                i = len(verts)
+                for (x, z) in ((x1, z1), (x2, z2)):
+                    y = h(x, z)
+                    verts += [
+                        [x + px * hw, y, z + pz * hw],                                            # 0 curb bottom
+                        [x + px * (hw + config.CURB_RUN), y + raise_y, z + pz * (hw + config.CURB_RUN)],  # 1 curb top
+                        [x + px * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH), y + raise_y,
+                         z + pz * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH)],                # 2 outer top
+                        [x + px * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH), y - 0.3,
+                         z + pz * (hw + config.CURB_RUN + config.SIDEWALK_WIDTH)],                # 3 outer skirt
+                    ]
+                for k in range(3):
+                    a, b = i + k, i + 4 + k
+                    # columns run OUTWARD (opposite lateral sense to road_mesh's
+                    # left->right), so side>0 takes the flipped pattern
+                    if side > 0:
+                        faces += [[a, a + 1, b], [a + 1, b + 1, b]]
+                    else:
+                        faces += [[a, b, a + 1], [a + 1, b, b + 1]]
     if not faces:
         return None
     mesh = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
@@ -216,35 +250,38 @@ def _strip_quads(pts: list[tuple[float, float]], offset: float, width: float,
             verts += [[cx + px * hw, y, cz + pz * hw], [cx - px * hw, y, cz - pz * hw]]
         faces += [[i, i + 2, i + 1], [i + 1, i + 2, i + 3]]
 
-def roadmark_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
+def roadmark_mesh(r: Road, hm: Heightmap | None = None,
+                  junctions: frozenset = frozenset()) -> trimesh.Trimesh | None:
     if r.road_class not in config.ROADMARK_CLASSES or not r.name:
         return None
-    line = LineString(r.points)
-    lo, hi = config.SIDEWALK_END_TRIM, line.length - config.SIDEWALK_END_TRIM
-    if hi - lo < config.MARK_DASH:
+    intervals = [iv for iv in _clear_intervals(r.points, junctions, config.SIDEWALK_END_TRIM)
+                if iv[1] - iv[0] >= config.MARK_DASH]
+    if not intervals:
         return None
     def h(x: float, z: float) -> float:
         return 0.05 + config.MARK_LIFT + (hm.sample(x, z) if hm is not None else 0.0)
     parts = []
     # yellow dashed centerline
     verts, faces = [], []
-    t = lo
-    while t + config.MARK_DASH <= hi:
-        seg = _polyline_slice(r.points, t, t + config.MARK_DASH)
-        if len(seg) >= 2:
-            _strip_quads(_densify(seg), 0.0, config.MARK_WIDTH, h, verts, faces)
-        t += config.MARK_PERIOD
+    for lo, hi in intervals:
+        t = lo
+        while t + config.MARK_DASH <= hi:
+            seg = _polyline_slice(r.points, t, t + config.MARK_DASH)
+            if len(seg) >= 2:
+                _strip_quads(_densify(seg), 0.0, config.MARK_WIDTH, h, verts, faces)
+            t += config.MARK_PERIOD
     if faces:
         parts.append(_paint(trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces),
                                             process=False), config.MARK_YELLOW))
     # white edge lines on arterials
     if r.road_class in config.EDGE_LINE_CLASSES:
         everts, efaces = [], []
-        span = _densify(_polyline_slice(r.points, lo, hi))
-        if len(span) >= 2:
-            off = r.width / 2.0 - 0.45
-            _strip_quads(span, off, 0.10, h, everts, efaces)
-            _strip_quads(span, -off, 0.10, h, everts, efaces)
+        for lo, hi in intervals:
+            span = _densify(_polyline_slice(r.points, lo, hi))
+            if len(span) >= 2:
+                off = r.width / 2.0 - 0.45
+                _strip_quads(span, off, 0.10, h, everts, efaces)
+                _strip_quads(span, -off, 0.10, h, everts, efaces)
         if efaces:
             parts.append(_paint(trimesh.Trimesh(vertices=np.array(everts),
                                                 faces=np.array(efaces), process=False),
