@@ -8,8 +8,8 @@ No missions (yet). The game *is* the city: real street grid, real street names, 
 
 | | |
 |---|---|
-| ![Driving through Old Montreal](docs/screenshots/m6b_driving_day.png) | ![Downtown skyline at night](docs/screenshots/m6b_night.png) |
-| ![Night drive on Rue Saint-Paul](docs/screenshots/m6b_driving_night.png) | ![Dusk over the Old Port](docs/screenshots/m6b_dusk.png) |
+| ![Driving through Old Montreal](docs/screenshots/m6c_driving_day.png) | ![Downtown skyline at night](docs/screenshots/m6b_night.png) |
+| ![Night drive on Rue Saint-Paul](docs/screenshots/m6c_driving_night.png) | ![Dusk over the Old Port](docs/screenshots/m6b_dusk.png) |
 | ![On foot in Old Montreal at night](docs/screenshots/m4_onfoot_night.png) | ![On foot by day](docs/screenshots/m4_onfoot_day.png) |
 | ![Downtown at night](docs/screenshots/m35_night.png) | ![Sunset over the Old Port](docs/screenshots/m35_dusk.png) |
 | ![Downtown overview](docs/screenshots/m35_overview.png) | ![Mont Royal](docs/screenshots/m35_mountain.png) |
@@ -38,7 +38,7 @@ HRDEM elevation ┘     offline, deterministic     glTF tiles         runtime
 - [x] **M5** — Behind the wheel: 120 parked cars on real streets, walk up + **E** to drive (arcade physics, chase cam, speedometer)
 - [x] **M6a** — Surfaces: real CC0 textures (brick/stone/concrete facades, asphalt, paving), window frames & storefronts, sidewalks with curbs, lane markings
 - [x] **M6b** — Light: warm sun & ambient, thinner fog, pooled street lights, car headlights
-- [ ] **M6c** — Things: real car models, traffic lights, credits
+- [x] **M6c** — Things: Kenney CC0 car models, traffic lights at real signal positions, credits screen (**C**)
 - [ ] **M7** — Polish: audio, tuning
 
 ## Run it

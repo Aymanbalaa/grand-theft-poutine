@@ -6495,6 +6495,11 @@
  "tile_size": 256.0,
  "tiles": [
   {
+   "file": "tile_-11_-8.glb",
+   "tx": -11,
+   "tz": -8
+  },
+  {
    "file": "tile_-10_-8.glb",
    "tx": -10,
    "tz": -8
@@ -6935,6 +6940,11 @@
    "tz": 7
   },
   {
+   "file": "tile_-4_-9.glb",
+   "tx": -4,
+   "tz": -9
+  },
+  {
    "file": "tile_-4_-8.glb",
    "tx": -4,
    "tz": -8
@@ -7013,6 +7023,11 @@
    "file": "tile_-4_7.glb",
    "tx": -4,
    "tz": 7
+  },
+  {
+   "file": "tile_-3_-9.glb",
+   "tx": -3,
+   "tz": -9
   },
   {
    "file": "tile_-3_-8.glb",
