@@ -8,8 +8,12 @@ var _collision: Dictionary = {}  # Node3D -> StaticBody3D
 var _tile_size := 256.0
 var _camera: Camera3D
 var _city_mat := _make_city_material()
-var _building_mat := _make_shader_material("res://shaders/building_windows.gdshader")
+var _building_mat := _make_building_material()
 var _water_mat := _make_shader_material("res://shaders/water.gdshader")
+var _road_mat := _make_triplanar_material("asphalt", 0.08, 2.0)
+var _sidewalk_mat := _make_triplanar_material("paving", 0.30, 1.6)
+var _terrain_mat := _make_triplanar_material("ground", 0.06, 2.0)
+var _marks_mat := _make_marks_material()
 
 static func _make_city_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -25,6 +29,44 @@ static func _make_shader_material(path: String) -> ShaderMaterial:
 	m.shader = load(path)
 	return m
 
+static func _make_building_material() -> ShaderMaterial:
+	var m := _make_shader_material("res://shaders/building_windows.gdshader")
+	if m == null:
+		return null
+	for slot in ["brick", "stone", "concrete", "roof"]:
+		var path := "res://assets/textures/pbr/%s_alb.jpg" % slot
+		if ResourceLoader.exists(path):
+			m.set_shader_parameter(slot + "_tex", load(path))
+	return m
+
+static func _make_triplanar_material(slot: String, uv_scale: float, brighten: float) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
+	m.albedo_color = Color(brighten, brighten, brighten)
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
+	var alb := "res://assets/textures/pbr/%s_alb.jpg" % slot
+	if ResourceLoader.exists(alb):
+		m.albedo_texture = load(alb)
+	var nrm := "res://assets/textures/pbr/%s_nrm.jpg" % slot
+	if ResourceLoader.exists(nrm):
+		m.normal_enabled = true
+		m.normal_texture = load(nrm)
+	var rgh := "res://assets/textures/pbr/%s_rgh.jpg" % slot
+	if ResourceLoader.exists(rgh):
+		m.roughness_texture = load(rgh)
+	return m
+
+static func _make_marks_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true
+	m.albedo_color = Color(1.4, 1.4, 1.4)
+	m.roughness = 0.55
+	return m
+
 func _apply_city_material(node: Node) -> void:
 	for mi in node.find_children("*", "MeshInstance3D", true, false):
 		var inst := mi as MeshInstance3D
@@ -33,6 +75,14 @@ func _apply_city_material(node: Node) -> void:
 			inst.material_override = _building_mat
 		elif _water_mat != null and n.begins_with("water"):
 			inst.material_override = _water_mat
+		elif n.begins_with("roadmarks"):
+			inst.material_override = _marks_mat
+		elif n.begins_with("roads"):
+			inst.material_override = _road_mat
+		elif n.begins_with("sidewalks"):
+			inst.material_override = _sidewalk_mat
+		elif n.begins_with("terrain"):
+			inst.material_override = _terrain_mat
 		else:
 			inst.material_override = _city_mat
 
@@ -94,7 +144,7 @@ func _build_collision(tile: Node3D) -> StaticBody3D:
 	for mi in tile.find_children("*", "MeshInstance3D", true, false):
 		var inst := mi as MeshInstance3D
 		var n := inst.name.to_lower()
-		if n.begins_with("water") or n.begins_with("props"):
+		if n.begins_with("water") or n.begins_with("props") or n.begins_with("roadmarks"):
 			continue
 		if inst.mesh == null:
 			continue
