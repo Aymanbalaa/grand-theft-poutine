@@ -214,3 +214,12 @@ def test_roadmarks_gap_at_interior_junction():
     m = roadmark_mesh(r, junctions=frozenset({(30.0, 0.0)}))
     xs = m.vertices[:, 0]
     assert not ((xs > 23.0) & (xs < 37.0)).any()
+
+def test_traffic_light_mesh_shape():
+    from pipeline.meshes import traffic_light_mesh
+    m = traffic_light_mesh(10.0, 20.0, 0.0)
+    assert m.vertices[:, 1].max() > 4.0          # head height
+    assert m.vertices[:, 1].min() >= -0.01
+    assert abs(m.vertices[:, 0] - 10.0).max() < 3.0   # near anchor
+    a = traffic_light_mesh(10.0, 20.0, 0.0)
+    assert (a.vertices == m.vertices).all()      # deterministic

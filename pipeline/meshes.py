@@ -342,6 +342,32 @@ def lamp_mesh(x: float, z: float, y: float) -> trimesh.Trimesh:
     m.apply_translation([x, y, z])
     return m
 
+def traffic_light_mesh(x: float, z: float, y: float) -> trimesh.Trimesh:
+    pole_h = 4.6
+    arm_len = 1.6
+    head_size = (0.35, 1.0, 0.35)
+    pole = trimesh.creation.box((0.22, pole_h, 0.22))
+    pole.apply_translation([0, pole_h / 2.0, 0])
+    _paint(pole, config.TRAFFIC_POLE_COLOR)
+    arm = trimesh.creation.box((arm_len, 0.12, 0.12))
+    arm.apply_translation([-arm_len / 2.0, pole_h, 0])
+    _paint(arm, config.TRAFFIC_POLE_COLOR)
+    head = trimesh.creation.box(head_size)
+    head.apply_translation([-arm_len, pole_h - head_size[1] / 2.0, 0])
+    _paint(head, config.TRAFFIC_POLE_COLOR)
+    lights = []
+    light_size = 0.16
+    front_z = head_size[2] / 2.0 + light_size / 2.0
+    colors = ((200, 40, 30), (220, 160, 30), (40, 170, 60))
+    for i, rgb in enumerate(colors):
+        cy = pole_h - head_size[1] * (2 * i + 1) / 6.0
+        lamp = trimesh.creation.box((light_size, light_size, light_size))
+        lamp.apply_translation([-arm_len, cy, front_z])
+        lights.append(_paint(lamp, rgb))
+    m = trimesh.util.concatenate([pole, arm, head, *lights])
+    m.apply_translation([x, y, z])
+    return m
+
 def terrain_tile_mesh(tx: int, tz: int, hm: Heightmap,
                       water_geom=None, green_geom=None) -> trimesh.Trimesh:
     from shapely.geometry import Point

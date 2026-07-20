@@ -8,7 +8,7 @@ from shapely.prepared import prep
 from pipeline import config
 from pipeline.geo import latlon_to_xz
 from pipeline.osm_parse import CityData
-from pipeline.meshes import building_mesh, road_mesh, sidewalk_mesh, roadmark_mesh, area_piece_mesh, terrain_tile_mesh, tree_mesh, lamp_mesh
+from pipeline.meshes import building_mesh, road_mesh, sidewalk_mesh, roadmark_mesh, area_piece_mesh, terrain_tile_mesh, tree_mesh, lamp_mesh, traffic_light_mesh
 
 def assign_tile(x: float, z: float) -> tuple[int, int]:
     return (math.floor(x / config.TILE_SIZE), math.floor(z / config.TILE_SIZE))
@@ -90,6 +90,9 @@ def build_tiles(city: CityData, hm=None) -> dict[tuple[int, int], trimesh.Scene]
     for x, z in city.lamps:
         y = hm.sample(x, z) if hm is not None else 0.0
         buckets[assign_tile(x, z)]["props"].append(lamp_mesh(x, z, y))
+    for x, z in city.signals:
+        y = hm.sample(x, z) if hm is not None else 0.0
+        buckets[assign_tile(x, z)]["props"].append(traffic_light_mesh(x, z, y))
 
     water_geom = green_geom = None
     keys = set(buckets)
