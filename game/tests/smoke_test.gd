@@ -66,6 +66,13 @@ func _init() -> void:
 		push_error("FAIL: enter_exit action not registered")
 		quit(1)
 		return
+	await process_frame
+	var vis := test_car.get_node("Visual") as Node3D
+	if vis.get_child_count() == 0:
+		push_error("FAIL: car visual is empty")
+		quit(1)
+		return
+	print("CARVIS %s" % ("model" if vis.get("_model_mode") else "procedural"))
 	test_car.queue_free()
 	print("CAR OK")
 	var cars := root.get_node_or_null("Cars")
