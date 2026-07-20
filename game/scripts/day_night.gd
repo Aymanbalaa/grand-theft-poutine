@@ -32,7 +32,7 @@ func _process(delta: float) -> void:
 	var daylight := clampf(s * 1.5, 0.0, 1.0)
 	var dusk := clampf(1.0 - absf(s) * 2.5, 0.0, 1.0)
 	rotation_degrees = Vector3(-6.0 - 78.0 * maxf(s, 0.0), 40.0 + 360.0 * time_of_day, 0.0)
-	light_energy = 0.02 + 2.7 * daylight
+	light_energy = 0.02 + 2.3 * daylight
 	light_color = Color(1.0, 0.82 + 0.16 * daylight, 0.62 + 0.33 * daylight)
 	night_amount = 1.0 - daylight
 	RenderingServer.global_shader_parameter_set("night_amount", night_amount)
@@ -43,4 +43,6 @@ func _process(delta: float) -> void:
 		_sky_mat.ground_horizon_color = horizon
 	if _env != null:
 		_env.fog_light_color = horizon
-		_env.ambient_light_energy = 0.18 + 0.62 * daylight
+		_env.ambient_light_energy = 0.45 + 0.6 * daylight
+		var amb := Color(0.17, 0.19, 0.30).lerp(Color(0.92, 0.90, 0.86), daylight)
+		_env.ambient_light_color = amb.lerp(Color(1.0, 0.72, 0.5), dusk * 0.6)

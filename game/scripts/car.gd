@@ -69,4 +69,4 @@ func _physics_process(delta: float) -> void:
 	var night: float = 0.0 if sun == null else sun.night_amount
 	var on := driven and night > 0.45
 	for h in _headlights:
-		(h as SpotLight3D).light_energy = 4.0 if on else 0.0
+		(h as SpotLight3D).light_energy = 30.0 if on else 0.0

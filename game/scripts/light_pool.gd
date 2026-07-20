@@ -25,7 +25,7 @@ func _ready() -> void:
 	for i in POOL_SIZE:
 		var l := OmniLight3D.new()
 		l.light_color = Color(1.0, 0.82, 0.55)
-		l.omni_range = 17.0
+		l.omni_range = 20.0
 		l.light_energy = 0.0
 		l.shadow_enabled = false
 		add_child(l)
@@ -52,7 +52,7 @@ func _process(delta: float) -> void:
 		if d2 < RADIUS * RADIUS:
 			near.append([d2, lp])
 	near.sort_custom(func(a, b): return a[0] < b[0])
-	var energy := 1.7 * smoothstep(0.5, 0.9, night)
+	var energy := 9.0 * smoothstep(0.5, 0.9, night)
 	for i in POOL_SIZE:
 		var l := _lights[i]
 		if i < near.size():
