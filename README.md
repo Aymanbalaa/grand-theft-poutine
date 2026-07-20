@@ -52,6 +52,8 @@ Tests: `.venv/Scripts/python -m pytest pipeline -q` and `tools/godot/godot_conso
 
 ## Data & licenses
 
+Full attributions: [CREDITS.md](CREDITS.md) (also in-game — press **C**).
+
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL)
 - Terrain: [HRDEM](https://open.canada.ca/data/en/dataset/957782bf-847c-4644-a757-e383c0057995) — Natural Resources Canada (Open Government Licence – Canada)
 - Engine: [Godot](https://godotengine.org/) (MIT)
