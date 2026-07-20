@@ -112,3 +112,16 @@ def test_tall_or_odd_footprint_no_gable():
     lshape = [(0, 0), (20, 0), (20, 6), (6, 6), (6, 20), (0, 20)]
     odd = building_mesh(Building(5, lshape, 8.0, "house"))
     assert odd.bounds[1][1] < 8.5   # L-shape ratio < 0.75 -> no gable
+
+def test_building_walls_encode_category_alpha():
+    from pipeline.meshes import building_mesh
+    from pipeline.osm_parse import Building
+    from pipeline import config
+    b = Building(1, [(0, 0), (20, 0), (20, 12), (0, 12)], 20.0, "office")
+    m = building_mesh(b)
+    alphas = set(int(a) for a in m.visual.vertex_colors[:, 3])
+    assert config.WALL_CATEGORY_ALPHA["commercial"] in alphas  # walls tagged
+    assert 255 in alphas                                       # roof cap untagged
+    b2 = Building(2, [(0, 0), (20, 0), (20, 12), (0, 12)], 20.0, "house")
+    alphas2 = set(int(a) for a in building_mesh(b2).visual.vertex_colors[:, 3])
+    assert config.WALL_CATEGORY_ALPHA["residential"] in alphas2

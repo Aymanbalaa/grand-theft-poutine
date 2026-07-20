@@ -22,10 +22,11 @@ def _jitter(osm_id: int) -> float:
     """Deterministic per-id shade factor in [0.88, 1.08]."""
     return 0.88 + 0.2 * ((osm_id * 2654435761) % 1000) / 1000.0
 
-def _paint(mesh: trimesh.Trimesh, rgb: tuple, factor: float = 1.0) -> trimesh.Trimesh:
+def _paint(mesh: trimesh.Trimesh, rgb: tuple, factor: float = 1.0,
+           alpha: int = 255) -> trimesh.Trimesh:
     c = np.clip(np.array(rgb, dtype=float) * factor, 0, 255).astype(np.uint8)
     mesh.visual.vertex_colors = np.tile(
-        np.array([c[0], c[1], c[2], 255], dtype=np.uint8), (len(mesh.vertices), 1)
+        np.array([c[0], c[1], c[2], alpha], dtype=np.uint8), (len(mesh.vertices), 1)
     )
     return mesh
 
@@ -101,7 +102,8 @@ def building_mesh(b: Building, hm: Heightmap | None = None) -> trimesh.Trimesh |
         roof = _gable_roof(poly, top_y)
     if roof is None:
         roof = _roof_cap(poly, top_y, building_color(b), _jitter(b.osm_id))
-    walls = _paint(mesh, building_color(b), _jitter(b.osm_id))
+    walls = _paint(mesh, building_color(b), _jitter(b.osm_id),
+                   alpha=config.WALL_CATEGORY_ALPHA.get(cat, 5))
     return trimesh.util.concatenate([walls, roof])
 
 def road_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:

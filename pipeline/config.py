@@ -99,6 +99,10 @@ CAR_SPAWN_SPACING = 90.0      # arclength between candidates along a road
 CAR_SPAWN_MIN_GAP = 25.0      # min distance between any two accepted spawns
 MAX_CAR_SPAWNS = 120
 
+# --- M6a Task 2: category-coded wall vertex alpha (facade shader selection) ---
+WALL_CATEGORY_ALPHA = {"residential": 0, "commercial": 1, "church": 2,
+                       "industrial": 3, "civic": 4, "default": 5}
+
 # --- M6a textures (ambientCG, CC0). preferred id first, API search query as fallback. ---
 TEXTURE_SLOTS = {
     "brick":    {"preferred": "Bricks059",        "query": "red brick",        "maps": ["Color"]},
