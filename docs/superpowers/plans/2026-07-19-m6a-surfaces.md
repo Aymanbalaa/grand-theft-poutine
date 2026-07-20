@@ -317,6 +317,13 @@ def test_sidewalk_deterministic():
     a = sidewalk_mesh(_mk_road())
     b = sidewalk_mesh(_mk_road())
     assert (a.vertices == b.vertices).all() and (a.faces == b.faces).all()
+
+def test_sidewalk_faces_point_up():
+    from pipeline.meshes import sidewalk_mesh
+    m = sidewalk_mesh(_mk_road())
+    ny = m.face_normals[:, 1]
+    assert ny.min() > -0.05          # nothing faces downward (CULL_BACK would hide it)
+    assert (ny > 0.9).sum() >= 2     # flat walkable tops present on both sides
 ```
 
 - [ ] **Step 2: Run** → FAIL (no `sidewalk_mesh`).
@@ -389,10 +396,12 @@ def sidewalk_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | Non
                 ]
             for k in range(3):
                 a, b = i + k, i + 4 + k
+                # columns run OUTWARD (opposite lateral sense to road_mesh's
+                # left->right), so side>0 takes the flipped pattern
                 if side > 0:
-                    faces += [[a, b, a + 1], [a + 1, b, b + 1]]
-                else:
                     faces += [[a, a + 1, b], [a + 1, b + 1, b]]
+                else:
+                    faces += [[a, b, a + 1], [a + 1, b, b + 1]]
     if not faces:
         return None
     mesh = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
@@ -447,6 +456,11 @@ def test_roadmarks_edge_lines_on_primary():
     m_pri = roadmark_mesh(_mk_road("primary", width=10.0))
     assert len(m_pri.faces) > len(m_res.faces)          # edge lines added
     assert abs(m_pri.vertices[:, 2]).max() > 4.0        # near ±(5.0 - 0.45)
+
+def test_roadmarks_faces_point_up():
+    from pipeline.meshes import roadmark_mesh
+    m = roadmark_mesh(_mk_road("primary", width=10.0))
+    assert m.face_normals[:, 1].min() > 0.9   # every mark quad faces up
 
 def test_roadmarks_skip_unnamed_and_footways():
     from pipeline.meshes import roadmark_mesh

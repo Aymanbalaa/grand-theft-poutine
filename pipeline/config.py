@@ -132,3 +132,4 @@ MARK_WIDTH = 0.15
 MARK_LIFT = 0.02
 MARK_YELLOW = (196, 164, 48)
 MARK_WHITE = (208, 208, 204)
+PATH_CLASSES = ("pedestrian", "footway", "cycleway", "living_street")

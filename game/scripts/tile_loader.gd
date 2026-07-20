@@ -10,9 +10,8 @@ var _camera: Camera3D
 var _city_mat := _make_city_material()
 var _building_mat := _make_building_material()
 var _water_mat := _make_shader_material("res://shaders/water.gdshader")
-var _road_mat := _make_triplanar_material("asphalt", 0.08, 2.0)
-var _sidewalk_mat := _make_triplanar_material("paving", 0.30, 1.6)
-var _terrain_mat := _make_triplanar_material("ground", 0.06, 2.0)
+var _road_mat := _make_triplanar_material("asphalt", 0.08, 3.2)
+var _sidewalk_mat := _make_triplanar_material("paving", 0.8, 1.8)
 var _marks_mat := _make_marks_material()
 
 static func _make_city_material() -> StandardMaterial3D:
@@ -50,10 +49,8 @@ static func _make_triplanar_material(slot: String, uv_scale: float, brighten: fl
 	var alb := "res://assets/textures/pbr/%s_alb.jpg" % slot
 	if ResourceLoader.exists(alb):
 		m.albedo_texture = load(alb)
-	var nrm := "res://assets/textures/pbr/%s_nrm.jpg" % slot
-	if ResourceLoader.exists(nrm):
-		m.normal_enabled = true
-		m.normal_texture = load(nrm)
+	# no normal maps: tiles carry no tangents, and triplanar normal mapping
+	# without them renders streak artifacts (tangent-frame garbage)
 	var rgh := "res://assets/textures/pbr/%s_rgh.jpg" % slot
 	if ResourceLoader.exists(rgh):
 		m.roughness_texture = load(rgh)
@@ -79,10 +76,8 @@ func _apply_city_material(node: Node) -> void:
 			inst.material_override = _marks_mat
 		elif n.begins_with("roads"):
 			inst.material_override = _road_mat
-		elif n.begins_with("sidewalks"):
+		elif n.begins_with("sidewalks") or n.begins_with("paths"):
 			inst.material_override = _sidewalk_mat
-		elif n.begins_with("terrain"):
-			inst.material_override = _terrain_mat
 		else:
 			inst.material_override = _city_mat
 

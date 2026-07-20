@@ -93,7 +93,7 @@ void fragment() {
 	float lit = step(0.62, hash21(cell));
 	float night = smoothstep(0.45, 0.9, night_amount);
 	float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
-	float glow = max(lit, storefront * 0.9);
+	float glow = max(lit, storefront * 0.55);
 	EMISSION = vec3(1.0, 0.72, 0.35)
 			* (inner * glow * night * 1.6 * (0.2 + 0.8 * facing) * (1.0 - roofness));
 }

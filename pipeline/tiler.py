@@ -39,7 +39,8 @@ def build_tiles(city: CityData, hm=None) -> dict[tuple[int, int], trimesh.Scene]
     for r in city.roads:
         m = road_mesh(r, hm)
         if m is not None:
-            buckets[assign_tile(*r.points[0])]["roads"].append(m)
+            cat = "paths" if r.road_class in config.PATH_CLASSES else "roads"
+            buckets[assign_tile(*r.points[0])][cat].append(m)
     counts: dict[tuple[float, float], int] = defaultdict(int)
     for r in city.roads:
         if r.road_class in config.SIDEWALK_CLASSES or r.road_class in config.ROADMARK_CLASSES:
@@ -101,7 +102,7 @@ def build_tiles(city: CityData, hm=None) -> dict[tuple[int, int], trimesh.Scene]
     for key in sorted(keys):
         scene = trimesh.Scene()
         total_tris = 0
-        for cat in ("buildings", "roads", "sidewalks", "roadmarks", "water", "green", "props"):
+        for cat in ("buildings", "roads", "paths", "sidewalks", "roadmarks", "water", "green", "props"):
             if buckets[key][cat]:
                 merged = trimesh.util.concatenate(buckets[key][cat])
                 total_tris += len(merged.faces)
