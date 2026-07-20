@@ -26,3 +26,19 @@ spring_length = 7.0
 
 [node name="CarCamera" type="Camera3D" parent="CamPivot/SpringArm3D"]
 far = 4000.0
+
+[node name="HeadlightL" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.99156, 0.12963, 0, -0.12963, 0.99156, -0.6, 0.72, -2.0)
+light_color = Color(1, 0.93, 0.8, 1)
+light_energy = 0.0
+spot_range = 32.0
+spot_angle = 30.0
+shadow_enabled = true
+
+[node name="HeadlightR" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.99156, 0.12963, 0, -0.12963, 0.99156, 0.6, 0.72, -2.0)
+light_color = Color(1, 0.93, 0.8, 1)
+light_energy = 0.0
+spot_range = 32.0
+spot_angle = 30.0
+shadow_enabled = true

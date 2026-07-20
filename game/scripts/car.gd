@@ -19,6 +19,8 @@ var driven := false
 var speed := 0.0
 var steer_input := 0.0
 
+@onready var _headlights := [$HeadlightL as SpotLight3D, $HeadlightR as SpotLight3D]
+
 func park() -> void:
 	driven = false
 	speed = 0.0
@@ -63,3 +65,8 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	if not driven and absf(speed) < 0.3 and is_on_floor():
 		park()
+	var sun := get_tree().get_first_node_in_group("sun")
+	var night: float = 0.0 if sun == null else sun.night_amount
+	var on := driven and night > 0.45
+	for h in _headlights:
+		(h as SpotLight3D).light_energy = 4.0 if on else 0.0
