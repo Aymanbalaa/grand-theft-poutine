@@ -155,3 +155,10 @@ def test_sidewalk_deterministic():
     a = sidewalk_mesh(_mk_road())
     b = sidewalk_mesh(_mk_road())
     assert (a.vertices == b.vertices).all() and (a.faces == b.faces).all()
+
+def test_sidewalk_faces_point_up():
+    from pipeline.meshes import sidewalk_mesh
+    m = sidewalk_mesh(_mk_road())
+    ny = m.face_normals[:, 1]
+    assert ny.min() > -0.05          # nothing faces downward (CULL_BACK would hide it)
+    assert (ny > 0.9).sum() >= 2     # flat walkable tops present on both sides

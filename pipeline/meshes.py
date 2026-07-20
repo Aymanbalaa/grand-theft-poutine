@@ -188,10 +188,12 @@ def sidewalk_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | Non
                 ]
             for k in range(3):
                 a, b = i + k, i + 4 + k
+                # columns run OUTWARD (opposite lateral sense to road_mesh's
+                # left->right), so side>0 takes the flipped pattern
                 if side > 0:
-                    faces += [[a, b, a + 1], [a + 1, b, b + 1]]
-                else:
                     faces += [[a, a + 1, b], [a + 1, b + 1, b]]
+                else:
+                    faces += [[a, b, a + 1], [a + 1, b, b + 1]]
     if not faces:
         return None
     mesh = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
