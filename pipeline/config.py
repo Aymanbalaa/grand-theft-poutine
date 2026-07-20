@@ -98,3 +98,16 @@ CAR_SPAWN_RADIUS = 700.0      # meters from origin — downtown only
 CAR_SPAWN_SPACING = 90.0      # arclength between candidates along a road
 CAR_SPAWN_MIN_GAP = 25.0      # min distance between any two accepted spawns
 MAX_CAR_SPAWNS = 120
+
+# --- M6a textures (ambientCG, CC0). preferred id first, API search query as fallback. ---
+TEXTURE_SLOTS = {
+    "brick":    {"preferred": "Bricks075A",       "query": "red brick",        "maps": ["Color"]},
+    "stone":    {"preferred": "Bricks059",        "query": "stone bricks wall","maps": ["Color"]},
+    "concrete": {"preferred": "Concrete034",      "query": "concrete",         "maps": ["Color"]},
+    "roof":     {"preferred": "Gravel022",        "query": "gravel",           "maps": ["Color"]},
+    "asphalt":  {"preferred": "Asphalt026",       "query": "asphalt",          "maps": ["Color", "NormalGL", "Roughness"]},
+    "paving":   {"preferred": "PavingStones128",  "query": "concrete paving",  "maps": ["Color", "NormalGL", "Roughness"]},
+    "ground":   {"preferred": "Ground037",        "query": "dirt ground",      "maps": ["Color", "NormalGL", "Roughness"]},
+}
+AMBIENTCG_DL = "https://ambientcg.com/get?file={id}_1K-JPG.zip"
+AMBIENTCG_API = "https://ambientcg.com/api/v2/full_json?type=Material&include=downloadData&q={q}"
