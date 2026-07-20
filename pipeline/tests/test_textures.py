@@ -112,7 +112,7 @@ def test_fallback_then_cache_hit(tmp_path):
         return _fetch_ok(url)
     ids = ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o", fetch=fb_fetch)
     assert ids["roof"] == "FallbackY"
-    n = len(calls)
+    assert len(calls) >= len(config.TEXTURE_SLOTS)  # fallback path cost extra calls
     def no_net(url):
         raise AssertionError("network touched on fallback cache hit: " + url)
     ids2 = ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o2", fetch=no_net)

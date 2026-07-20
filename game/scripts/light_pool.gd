@@ -44,6 +44,8 @@ func _process(delta: float) -> void:
 		return
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
+		for l in _lights:
+			l.light_energy = 0.0
 		return
 	var cp := cam.global_position
 	var near: Array = []  # [dist2, Vector3]
