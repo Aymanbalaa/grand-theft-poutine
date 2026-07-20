@@ -89,6 +89,11 @@ func _init() -> void:
 		quit(1)
 		return
 	print("LIGHTS OK: %d lamps" % pool.call("lamp_count"))
+	if root.get_node_or_null("Credits") == null or not InputMap.has_action("credits"):
+		push_error("FAIL: credits overlay or action missing")
+		quit(1)
+		return
+	print("CREDITS OK")
 	var drive_car := cars.get_child(0) as Car
 	player.global_position = drive_car.global_position + Vector3(2.5, 1.0, 0)
 	await physics_frame
