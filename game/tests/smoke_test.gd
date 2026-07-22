@@ -94,6 +94,13 @@ func _init() -> void:
 		quit(1)
 		return
 	print("CREDITS OK")
+	var amb := root.get_node_or_null("Ambient") as AudioStreamPlayer
+	var eng := cars.get_child(0).get_node_or_null("EngineAudio") as AudioStreamPlayer3D
+	if amb == null or amb.stream == null or eng == null or eng.stream == null:
+		push_error("FAIL: audio streams missing")
+		quit(1)
+		return
+	print("AUDIO OK")
 	var drive_car := cars.get_child(0) as Car
 	player.global_position = drive_car.global_position + Vector3(2.5, 1.0, 0)
 	await physics_frame
@@ -128,5 +135,8 @@ func _init() -> void:
 		quit(1)
 		return
 	print("EXIT OK")
+	amb.stop()
+	for i in 10:
+		await process_frame
 	print("SMOKE OK: %d tiles" % loader.loaded_tile_count())
 	quit(0)

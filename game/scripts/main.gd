@@ -35,6 +35,14 @@ func _ready() -> void:
 	_player.global_position = Vector3(sx, 80.0, sz)
 	(_player.get_node("CamPivot/SpringArm3D/PlayerCamera") as Camera3D).current = true
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	var amb := get_node_or_null("Ambient") as AudioStreamPlayer
+	if amb != null:
+		var s := load("res://assets/audio/ambient.wav") as AudioStreamWAV
+		if s != null:
+			s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			s.loop_end = s.data.size() / 2
+			amb.stream = s
+			amb.play()
 
 func _process(_delta: float) -> void:
 	if _driving != null:

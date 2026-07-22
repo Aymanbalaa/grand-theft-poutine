@@ -20,6 +20,16 @@ var speed := 0.0
 var steer_input := 0.0
 
 @onready var _headlights := [$HeadlightL as SpotLight3D, $HeadlightR as SpotLight3D]
+@onready var _engine := get_node_or_null("EngineAudio") as AudioStreamPlayer3D
+
+func _ready() -> void:
+	if _engine != null:
+		var s := load("res://assets/audio/engine.wav") as AudioStreamWAV
+		if s != null:
+			s.loop_mode = AudioStreamWAV.LOOP_FORWARD
+			s.loop_begin = 0
+			s.loop_end = s.data.size() / 2  # 16-bit mono: bytes -> frames
+			_engine.stream = s
 
 func park() -> void:
 	driven = false
@@ -29,9 +39,11 @@ func park() -> void:
 func start_driving() -> void:
 	driven = true
 	set_physics_process(true)
+	if _engine != null and _engine.stream != null: _engine.play()
 
 func stop_driving() -> void:
 	driven = false
+	if _engine != null: _engine.stop()
 
 func _physics_process(delta: float) -> void:
 	var throttle := 0.0
@@ -70,3 +82,5 @@ func _physics_process(delta: float) -> void:
 	var on := driven and night > 0.45
 	for h in _headlights:
 		(h as SpotLight3D).light_energy = 30.0 if on else 0.0
+	if _engine != null and _engine.playing:
+		_engine.pitch_scale = 0.75 + 1.5 * absf(speed) / MAX_SPEED

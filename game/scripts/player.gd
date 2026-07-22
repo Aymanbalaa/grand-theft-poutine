@@ -9,6 +9,9 @@ const JUMP_VELOCITY := 5.0
 const GRAVITY := 14.0
 
 var cam_yaw := 0.0
+var _step_accum := 0.0
+
+@onready var _steps := get_node_or_null("StepAudio") as AudioStreamPlayer3D
 
 static func ensure_actions() -> void:
 	var defs := [["move_forward", KEY_W], ["move_back", KEY_S], ["move_left", KEY_A],
@@ -23,6 +26,8 @@ static func ensure_actions() -> void:
 
 func _ready() -> void:
 	ensure_actions()
+	if _steps != null:
+		_steps.stream = load("res://assets/audio/footstep.wav") as AudioStreamWAV
 
 func _physics_process(delta: float) -> void:
 	var input := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
@@ -37,3 +42,12 @@ func _physics_process(delta: float) -> void:
 	velocity.x = dir.x * speed
 	velocity.z = dir.z * speed
 	move_and_slide()
+	var hvel := Vector2(velocity.x, velocity.z).length()
+	if is_on_floor() and hvel > 1.0:
+		_step_accum += hvel * delta
+		if _step_accum >= 2.4 and _steps != null and _steps.stream != null:
+			_step_accum = 0.0
+			_steps.pitch_scale = randf_range(0.9, 1.1)
+			_steps.play()
+	else:
+		_step_accum = 0.0

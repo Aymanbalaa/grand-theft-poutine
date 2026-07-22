@@ -18,6 +18,10 @@ shape = SubResource("cap")
 [node name="Visual" type="Node3D" parent="."]
 script = ExtResource("2")
 
+[node name="StepAudio" type="AudioStreamPlayer3D" parent="."]
+volume_db = -10.0
+max_distance = 20.0
+
 [node name="CamPivot" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 script = ExtResource("3")
