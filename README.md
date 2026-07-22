@@ -10,7 +10,7 @@ No missions (yet). The game *is* the city: real street grid, real street names, 
 |---|---|
 | ![Driving through Old Montreal](docs/screenshots/m6c_driving_day.png) | ![Downtown skyline at night](docs/screenshots/m6b_night.png) |
 | ![Night drive on Rue Saint-Paul](docs/screenshots/m6c_driving_night.png) | ![Dusk over the Old Port](docs/screenshots/m6b_dusk.png) |
-| ![On foot in Old Montreal at night](docs/screenshots/m4_onfoot_night.png) | ![On foot by day](docs/screenshots/m4_onfoot_day.png) |
+| ![Avenue du Parc streetscape](docs/screenshots/m7_uphill_facade.png) | ![On foot by day](docs/screenshots/m7_onfoot_day.png) |
 | ![Downtown at night](docs/screenshots/m35_night.png) | ![Sunset over the Old Port](docs/screenshots/m35_dusk.png) |
 | ![Downtown overview](docs/screenshots/m35_overview.png) | ![Mont Royal](docs/screenshots/m35_mountain.png) |
 | ![Old Port](docs/screenshots/m35_oldport.png) | ![Biosphère & Île Sainte-Hélène](docs/screenshots/m35_biosphere.png) |
@@ -39,7 +39,7 @@ HRDEM elevation ┘     offline, deterministic     glTF tiles         runtime
 - [x] **M6a** — Surfaces: real CC0 textures (brick/stone/concrete facades, asphalt, paving), window frames & storefronts, sidewalks with curbs, lane markings
 - [x] **M6b** — Light: warm sun & ambient, thinner fog, pooled street lights, car headlights
 - [x] **M6c** — Things: Kenney CC0 car models, traffic lights at real signal positions, credits screen (**C**)
-- [ ] **M7** — Polish: audio, tuning
+- [x] **M7** — Polish: procedural audio (engine/footsteps/ambient — synthesized, license-free), kill-plane respawn, one-way streets get white centerlines, facades anchored to real ground height, car & headlight tuning, landmark collision
 
 ## Run it
 

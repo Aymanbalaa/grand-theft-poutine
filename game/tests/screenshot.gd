@@ -15,6 +15,8 @@ const POSES := [
 	{"name": "onfoot_night", "player": Vector3(30, 40, 40),    "time": 0.95},
 	{"name": "driving_day",   "car": Vector3(-60, 0, -80),  "drive": true, "time": 0.4},
 	{"name": "driving_night", "car": Vector3(30, 0, 40),  "time": 0.95},
+	{"name": "uphill_facade", "pos": Vector3(-1500, 34, -560), "look": Vector3(-1530, 36, -625), "time": 0.4},
+	{"name": "credits", "pos": Vector3(0, 600, 400), "look": Vector3(0, 0, 0), "time": 0.4, "credits": true},
 ]
 
 func _init() -> void:
@@ -69,6 +71,10 @@ func _init() -> void:
 			fly_cam.look_at(pose["look"])
 			for i in 15:
 				await process_frame
+		var credits := root.get_node_or_null("Credits") as CanvasLayer
+		if credits != null:
+			credits.visible = pose.get("credits", false)
+			await process_frame
 		var img := get_root().get_viewport().get_texture().get_image()
 		img.save_png("user://shot_%s.png" % pose["name"])
 		print("saved shot_%s.png" % pose["name"])
