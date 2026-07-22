@@ -41,4 +41,10 @@
     <nd ref="30"/><nd ref="31"/><nd ref="32"/><nd ref="33"/><nd ref="30"/>
     <tag k="natural" v="water"/>
   </way>
+  <way id="90">
+    <nd ref="1"/><nd ref="2"/>
+    <tag k="highway" v="residential"/>
+    <tag k="name" v="Rue Sens-Unique"/>
+    <tag k="oneway" v="yes"/>
+  </way>
 </osm>

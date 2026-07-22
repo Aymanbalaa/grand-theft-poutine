@@ -7,7 +7,7 @@ RIVER = Path(__file__).parent / "fixtures" / "river.osm.xml"
 
 def test_counts():
     city = parse_osm(FIX)
-    assert len(city.roads) == 2
+    assert len(city.roads) == 3
     assert len(city.buildings) == 2
     assert len(city.areas) == 1
 
@@ -79,3 +79,9 @@ def test_parses_traffic_signals():
     assert len(city.signals) == 1  # id=54 lies outside BBOX and must be dropped (M7)
     x, z = city.signals[0]
     assert isinstance(x, float) and isinstance(z, float)
+
+def test_parses_oneway():
+    city = parse_osm(FIX)
+    ow = {r.osm_id: r.oneway for r in city.roads}
+    assert ow[90] is True
+    assert any(not v for v in ow.values())

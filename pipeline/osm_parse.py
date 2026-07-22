@@ -15,6 +15,7 @@ class Road:
     points: list[tuple[float, float]]
     width: float
     road_class: str = "residential"
+    oneway: bool = False
 
 @dataclass
 class Building:
@@ -143,7 +144,8 @@ def parse_osm(xml_path: str | Path) -> CityData:
             pts = [latlon_to_xz(*nodes[r]) for r in refs if r in nodes]
             if len(pts) >= 2 and "highway" in tags:
                 width = config.ROAD_WIDTHS.get(tags["highway"], config.DEFAULT_ROAD_WIDTH)
-                city.roads.append(Road(wid, tags.get("name"), pts, width, tags["highway"]))
+                city.roads.append(Road(wid, tags.get("name"), pts, width, tags["highway"],
+                                       tags.get("oneway") in ("yes", "true", "1", "-1")))
             elif len(pts) >= 4 and refs[0] == refs[-1]:
                 ring = pts[:-1]
                 if "building" in tags:

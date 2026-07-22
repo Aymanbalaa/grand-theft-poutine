@@ -272,7 +272,7 @@ def roadmark_mesh(r: Road, hm: Heightmap | None = None,
             t += config.MARK_PERIOD
     if faces:
         parts.append(_paint(trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces),
-                                            process=False), config.MARK_YELLOW))
+                                            process=False), config.MARK_WHITE if r.oneway else config.MARK_YELLOW))
     # white edge lines on arterials
     if r.road_class in config.EDGE_LINE_CLASSES:
         everts, efaces = [], []

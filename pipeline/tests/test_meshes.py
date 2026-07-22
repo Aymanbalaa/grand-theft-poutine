@@ -223,3 +223,12 @@ def test_traffic_light_mesh_shape():
     assert abs(m.vertices[:, 0] - 10.0).max() < 3.0   # near anchor
     a = traffic_light_mesh(10.0, 20.0, 0.0)
     assert (a.vertices == m.vertices).all()      # deterministic
+
+def test_oneway_centerline_is_white():
+    from pipeline.meshes import roadmark_mesh
+    from pipeline import config
+    r = Road(1, "Rue Test", [(0.0, 0.0), (60.0, 0.0)], 6.0, "residential", True)
+    m = roadmark_mesh(r)
+    cols = {tuple(c[:3]) for c in m.visual.vertex_colors}
+    assert tuple(config.MARK_WHITE) in cols
+    assert tuple(config.MARK_YELLOW) not in cols
