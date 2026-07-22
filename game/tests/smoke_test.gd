@@ -101,6 +101,11 @@ func _init() -> void:
 		quit(1)
 		return
 	print("AUDIO OK")
+	if loader.landmark_body_count() < 5:
+		push_error("FAIL: landmark collision missing (%d)" % loader.landmark_body_count())
+		quit(1)
+		return
+	print("LANDMARKS OK: %d" % loader.landmark_body_count())
 	var drive_car := cars.get_child(0) as Car
 	player.global_position = drive_car.global_position + Vector3(2.5, 1.0, 0)
 	await physics_frame

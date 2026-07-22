@@ -30,7 +30,7 @@ func _ready() -> void:
 				var car := CAR_SCENE.instantiate() as Car
 				(car.get_node("Visual") as Node3D).set("color_index", i)
 				_cars.add_child(car)
-				car.global_position = Vector3(cs["x"], cs["y"] + 0.4, cs["z"])
+				car.global_position = Vector3(cs["x"], cs["y"] + 0.05, cs["z"])
 				car.rotation.y = cs["yaw"]
 				car.park()
 				i += 1

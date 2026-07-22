@@ -5,6 +5,7 @@ class_name TileLoader
 const COLLISION_RADIUS := 280.0
 var _tiles: Array[Dictionary] = []   # {node: Node3D, center: Vector3}
 var _collision: Dictionary = {}  # Node3D -> StaticBody3D
+var _landmark_bodies := 0
 var _tile_size := 256.0
 var _camera: Camera3D
 var _city_mat := _make_city_material()
@@ -112,6 +113,8 @@ func _ready() -> void:
 		var lm_node := lm_scene.instantiate() as Node3D
 		add_child(lm_node)
 		_apply_city_material(lm_node)
+		_build_collision(lm_node)
+		_landmark_bodies += 1
 
 func _process(_delta: float) -> void:
 	# re-fetch every frame so F-toggling cameras retargets streaming + collision
@@ -154,3 +157,6 @@ func _build_collision(tile: Node3D) -> StaticBody3D:
 
 func loaded_tile_count() -> int:
 	return _tiles.size()
+
+func landmark_body_count() -> int:
+	return _landmark_bodies

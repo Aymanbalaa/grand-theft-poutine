@@ -35,11 +35,18 @@ func park() -> void:
 	driven = false
 	speed = 0.0
 	set_physics_process(false)
+	$CamPivot.process_mode = Node.PROCESS_MODE_DISABLED
+	($Visual as Node3D).set_process(false)
+	if _engine != null:
+		_engine.stop()
 
 func start_driving() -> void:
 	driven = true
 	set_physics_process(true)
-	if _engine != null and _engine.stream != null: _engine.play()
+	$CamPivot.process_mode = Node.PROCESS_MODE_INHERIT
+	($Visual as Node3D).set_process(true)
+	if _engine != null and _engine.stream != null:
+		_engine.play()
 
 func stop_driving() -> void:
 	driven = false
@@ -79,8 +86,8 @@ func _physics_process(delta: float) -> void:
 		park()
 	var sun := get_tree().get_first_node_in_group("sun")
 	var night: float = 0.0 if sun == null else sun.night_amount
-	var on := driven and night > 0.45
+	var glow: float = smoothstep(0.4, 0.55, night) if driven else 0.0
 	for h in _headlights:
-		(h as SpotLight3D).light_energy = 30.0 if on else 0.0
+		(h as SpotLight3D).light_energy = 30.0 * glow
 	if _engine != null and _engine.playing:
 		_engine.pitch_scale = 0.75 + 1.5 * absf(speed) / MAX_SPEED
