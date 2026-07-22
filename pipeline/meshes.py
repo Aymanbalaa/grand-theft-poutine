@@ -91,10 +91,12 @@ def building_mesh(b: Building, hm: Heightmap | None = None) -> trimesh.Trimesh |
         return None
     if hm is None:
         mesh = _to_yup(extrude_polygon(poly, b.height))
+        base_y = 0.0
     else:
         c = poly.centroid
+        base_y = hm.sample(c.x, c.y)
         mesh = _to_yup(extrude_polygon(poly, b.height + 2.0))
-        mesh.apply_translation([0.0, hm.sample(c.x, c.y) - 2.0, 0.0])
+        mesh.apply_translation([0.0, base_y - 2.0, 0.0])
     top_y = float(mesh.bounds[1][1])
     cat = config.BUILDING_CATEGORIES.get(b.btype, "default")
     roof = None
@@ -102,8 +104,9 @@ def building_mesh(b: Building, hm: Heightmap | None = None) -> trimesh.Trimesh |
         roof = _gable_roof(poly, top_y)
     if roof is None:
         roof = _roof_cap(poly, top_y, building_color(b), _jitter(b.osm_id))
+    q = min(config.WALL_ALPHA_BASE_MAX, max(0, round(base_y / config.WALL_ALPHA_BASE_STEP)))
     walls = _paint(mesh, building_color(b), _jitter(b.osm_id),
-                   alpha=config.WALL_CATEGORY_ALPHA.get(cat, 5))
+                   alpha=config.WALL_CATEGORY_ALPHA.get(cat, 5) * 40 + q)
     return trimesh.util.concatenate([walls, roof])
 
 def road_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:

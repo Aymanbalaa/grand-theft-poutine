@@ -120,11 +120,22 @@ def test_building_walls_encode_category_alpha():
     b = Building(1, [(0, 0), (20, 0), (20, 12), (0, 12)], 20.0, "office")
     m = building_mesh(b)
     alphas = set(int(a) for a in m.visual.vertex_colors[:, 3])
-    assert config.WALL_CATEGORY_ALPHA["commercial"] in alphas  # walls tagged
+    assert config.WALL_CATEGORY_ALPHA["commercial"] * 40 in alphas  # walls tagged
     assert 255 in alphas                                       # roof cap untagged
     b2 = Building(2, [(0, 0), (20, 0), (20, 12), (0, 12)], 20.0, "house")
     alphas2 = set(int(a) for a in building_mesh(b2).visual.vertex_colors[:, 3])
-    assert config.WALL_CATEGORY_ALPHA["residential"] in alphas2
+    assert config.WALL_CATEGORY_ALPHA["residential"] * 40 in alphas2
+
+def test_building_alpha_encodes_base_height():
+    from pipeline import config
+    class HM:
+        def sample(self, x, z):
+            return 20.0
+    b = Building(1, [(0, 0), (20, 0), (20, 20), (0, 20)], 12.0, "office")
+    m = building_mesh(b, HM())
+    alphas = set(int(a) for a in m.visual.vertex_colors[:, 3])
+    assert config.WALL_CATEGORY_ALPHA["commercial"] * 40 + 10 in alphas  # 20 m / 2 m step
+    assert 255 in alphas  # roof cap unencoded
 
 def _mk_road(cls="residential", width=6.0):
     from pipeline.osm_parse import Road

@@ -36,7 +36,9 @@ vec3 tri_wall(sampler2D tex, vec3 p, vec3 n, float s) {
 void fragment() {
 	// tile vertex colors are authored sRGB; COLOR arrives raw, so linearize
 	vec3 tint = pow(vcol.rgb, vec3(2.2));
-	int cat = int(round(vcol.a * 255.0));
+	int acode = int(round(vcol.a * 255.0));
+	int cat = acode / 40;
+	float base_y = float(acode % 40) * 2.0;
 	float roofness = smoothstep(0.45, 0.6, wnormal.y);   // caps + gables; walls ~0
 
 	// sample everything unconditionally (texture() inside branches breaks mips)
@@ -55,7 +57,7 @@ void fragment() {
 	// --- window grid v2 (world-space, like v1) ---
 	float vertical = 1.0 - smoothstep(0.25, 0.4, abs(wnormal.y));
 	float u = abs(wnormal.x) > abs(wnormal.z) ? wpos.z : wpos.x;
-	float v = wpos.y;
+	float v = wpos.y - base_y;
 	float cw = (cat == 1) ? 2.4 : 3.6;                   // commercial mullions are finer
 	vec2 cell = vec2(floor(u / cw), floor(v / 3.2));
 	vec2 f = vec2(fract(u / cw), fract(v / 3.2));

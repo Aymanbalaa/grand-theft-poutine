@@ -104,6 +104,10 @@ MAX_CAR_SPAWNS = 120
 WALL_CATEGORY_ALPHA = {"residential": 0, "commercial": 1, "church": 2,
                        "industrial": 3, "civic": 4, "default": 5}
 
+# --- M7: wall alpha packs category*40 + quantized base height (2 m steps, caps at 78 m) ---
+WALL_ALPHA_BASE_STEP = 2.0
+WALL_ALPHA_BASE_MAX = 39
+
 # --- M6a textures (ambientCG, CC0). preferred id first, API search query as fallback. ---
 TEXTURE_SLOTS = {
     "brick":    {"preferred": "Bricks059",        "query": "red brick",        "maps": ["Color"]},
