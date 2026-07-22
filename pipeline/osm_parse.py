@@ -173,5 +173,7 @@ def parse_osm(xml_path: str | Path) -> CityData:
     city.areas.sort(key=lambda a: a.osm_id)
     city.trees = [latlon_to_xz(*tree_ids[i]) for i in sorted(tree_ids)]
     city.lamps = [latlon_to_xz(*lamp_ids[i]) for i in sorted(lamp_ids)]
-    city.signals = [latlon_to_xz(*signal_ids[i]) for i in sorted(signal_ids)]
+    s, w, n, e = config.BBOX
+    city.signals = [latlon_to_xz(*signal_ids[i]) for i in sorted(signal_ids)
+                    if s <= signal_ids[i][0] <= n and w <= signal_ids[i][1] <= e]
     return city

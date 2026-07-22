@@ -76,6 +76,6 @@ def test_trees_and_lamps_parsed():
 
 def test_parses_traffic_signals():
     city = parse_osm(FIX)
-    assert len(city.signals) == 1
+    assert len(city.signals) == 1  # id=54 lies outside BBOX and must be dropped (M7)
     x, z = city.signals[0]
     assert isinstance(x, float) and isinstance(z, float)
