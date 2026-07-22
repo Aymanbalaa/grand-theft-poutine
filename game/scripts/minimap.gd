@@ -12,9 +12,15 @@ func _ready() -> void:
 	var meta: Variant = JSON.parse_string(f.get_as_text())
 	if typeof(meta) != TYPE_DICTIONARY or not meta.has("minimap"):
 		return
-	var mm: Dictionary = meta["minimap"]
-	_origin = Vector2(mm["world_origin"][0], mm["world_origin"][1])
-	_world = Vector2(mm["world_size"][0], mm["world_size"][1])
+	var mm: Variant = meta["minimap"]
+	if typeof(mm) != TYPE_DICTIONARY:
+		return
+	var wo: Variant = mm.get("world_origin")
+	var ws: Variant = mm.get("world_size")
+	if typeof(wo) != TYPE_ARRAY or wo.size() < 2 or typeof(ws) != TYPE_ARRAY or ws.size() < 2:
+		return
+	_origin = Vector2(wo[0], wo[1])
+	_world = Vector2(ws[0], ws[1])
 
 func _process(_delta: float) -> void:
 	var cam := get_viewport().get_camera_3d()

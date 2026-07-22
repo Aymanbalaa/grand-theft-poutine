@@ -106,6 +106,12 @@ func _init() -> void:
 		quit(1)
 		return
 	print("LANDMARKS OK: %d" % loader.landmark_body_count())
+	var street_label := root.get_node_or_null("HUD/StreetLabel")
+	if street_label == null or str(street_label.call("lookup", 0.0, 0.0)) == "":
+		push_error("FAIL: HUD lookup empty at origin")
+		quit(1)
+		return
+	print("HUD OK: %s" % street_label.call("lookup", 0.0, 0.0))
 	var drive_car := cars.get_child(0) as Car
 	player.global_position = drive_car.global_position + Vector3(2.5, 1.0, 0)
 	await physics_frame

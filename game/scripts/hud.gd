@@ -14,30 +14,33 @@ func _ready() -> void:
 	if typeof(meta) != TYPE_DICTIONARY:
 		return
 	if meta.has("streets"):
-		_names = meta["streets"]["names"]
-		_grid = meta["streets"]["grid"]
-		_cell = meta["streets"]["cell"]
+		var st: Variant = meta["streets"]
+		if typeof(st) == TYPE_DICTIONARY and st.has("names") and st.has("grid") and st.has("cell"):
+			_names = st["names"]
+			_grid = st["grid"]
+			_cell = st["cell"]
 	for d in meta.get("districts", []):
 		var pv := PackedVector2Array()
 		for pt in d["poly"]:
 			pv.append(Vector2(pt[0], pt[1]))
 		_districts.append({"name": d["name"], "pv": pv})
 
-func _process(_delta: float) -> void:
-	var cam := get_viewport().get_camera_3d()
-	if cam == null:
-		return
-	var p := cam.global_position
-	var key := "%d,%d" % [floori(p.x / _cell), floori(p.z / _cell)]
+func lookup(x: float, z: float) -> String:
+	var key := "%d,%d" % [floori(x / _cell), floori(z / _cell)]
 	var street := ""
 	if _grid.has(key):
 		street = str(_names[int(_grid[key])])
 	var district := ""
 	for d in _districts:
-		if Geometry2D.is_point_in_polygon(Vector2(p.x, p.z), d["pv"]):
+		if Geometry2D.is_point_in_polygon(Vector2(x, z), d["pv"]):
 			district = d["name"]
 			break
 	if street != "" and district != "":
-		text = street + "  —  " + district
-	else:
-		text = street + district
+		return street + "  —  " + district
+	return street + district
+
+func _process(_delta: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	text = lookup(cam.global_position.x, cam.global_position.z)
