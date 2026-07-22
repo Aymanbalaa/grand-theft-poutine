@@ -264,7 +264,7 @@ def roadmark_mesh(r: Road, hm: Heightmap | None = None,
     def h(x: float, z: float) -> float:
         return 0.05 + config.MARK_LIFT + (hm.sample(x, z) if hm is not None else 0.0)
     parts = []
-    # yellow dashed centerline
+    # dashed centerline: yellow two-way, white one-way
     verts, faces = [], []
     for lo, hi in intervals:
         t = lo
