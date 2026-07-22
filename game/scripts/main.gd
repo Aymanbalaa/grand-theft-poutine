@@ -4,6 +4,7 @@ extends Node3D
 
 const CAR_SCENE := preload("res://scenes/car.tscn")
 const ENTER_RADIUS := 3.5
+const KILL_Y := -50.0
 
 @onready var _player := $Player as Player
 @onready var _fly_cam := $Camera as Camera3D
@@ -12,6 +13,7 @@ const ENTER_RADIUS := 3.5
 @onready var _speed_label := $HUD/SpeedLabel as Label
 
 var _driving: Car = null
+var _spawn := Vector3.ZERO
 
 func _ready() -> void:
 	var sx := 0.0
@@ -32,7 +34,8 @@ func _ready() -> void:
 				car.rotation.y = cs["yaw"]
 				car.park()
 				i += 1
-	_player.global_position = Vector3(sx, 80.0, sz)
+	_spawn = Vector3(sx, 80.0, sz)
+	_player.global_position = _spawn
 	(_player.get_node("CamPivot/SpringArm3D/PlayerCamera") as Camera3D).current = true
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	var amb := get_node_or_null("Ambient") as AudioStreamPlayer
@@ -46,8 +49,15 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	if _driving != null:
+		if _driving.is_physics_processing() and _driving.global_position.y < KILL_Y:
+			_driving.speed = 0.0
+			_driving.velocity = Vector3.ZERO
+			_driving.global_position = _spawn
 		_speed_label.text = "%d km/h" % absi(roundi(_driving.speed * 3.6))
 		return
+	if _player.is_physics_processing() and _player.global_position.y < KILL_Y:
+		_player.velocity = Vector3.ZERO
+		_player.global_position = _spawn
 	_prompt.visible = _player.visible and not _fly_cam.current and _nearest_car() != null
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -61,12 +71,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			if car != null:
 				_enter_car(car)
 	elif event.is_action_pressed("toggle_fly"):
-		var game_cam := _active_game_camera()
-		if game_cam.current:
-			_fly_cam.current = true
-		else:
-			game_cam.current = true
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		_set_flycam(_active_game_camera().current)
+
+func _set_flycam(on: bool) -> void:
+	if on:
+		_fly_cam.current = true
+	else:
+		_active_game_camera().current = true
+	if _driving != null:
+		_driving.set_physics_process(not on)
+	else:
+		_player.set_physics_process(not on)
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _active_game_camera() -> Camera3D:
 	if _driving != null:

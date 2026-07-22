@@ -135,6 +135,31 @@ func _init() -> void:
 		quit(1)
 		return
 	print("EXIT OK")
+	root.call("_set_flycam", true)
+	await process_frame
+	if player.is_physics_processing() or not cam.current:
+		push_error("FAIL: fly-cam did not suspend player")
+		quit(1)
+		return
+	root.call("_set_flycam", false)
+	await process_frame
+	if not player.is_physics_processing() or cam.current:
+		push_error("FAIL: fly-cam restore failed")
+		quit(1)
+		return
+	print("FLYGATE OK")
+	player.global_position.y = -100.0
+	var respawned := false
+	for i in 300:
+		await process_frame
+		if player.global_position.y > -40.0:
+			respawned = true
+			break
+	if not respawned:
+		push_error("FAIL: kill-plane respawn did not fire (y=%f)" % player.global_position.y)
+		quit(1)
+		return
+	print("KILLPLANE OK")
 	amb.stop()
 	for i in 10:
 		await process_frame
