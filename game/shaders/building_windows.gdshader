@@ -75,6 +75,15 @@ void fragment() {
 	lo = mix(lo, vec2(0.06, 0.05), storefront);
 	hi = mix(hi, vec2(0.94, 0.72), storefront);
 
+	// residential/default ground-floor doors: one cell in ~5, non-storefront
+	float door_pick = fract(sin(cell.x * 91.7 + seed * 47.0) * 43758.5453);
+	float is_door = (floor_idx == 0.0 && storefront < 0.5 && (cat == 0 || cat == 5))
+			? step(0.8, door_pick) : 0.0;
+	float door_mask = is_door * step(0.30, f.x) * step(f.x, 0.70)
+			* step(f.y, 2.2 / rh) * vertical;
+	float door_rim = is_door * step(0.26, f.x) * step(f.x, 0.74)
+			* step(f.y, 2.35 / rh) * vertical - door_mask;
+
 	float inwin = step(lo.x, f.x) * step(f.x, hi.x) * step(lo.y, f.y) * step(f.y, hi.y) * vertical;
 	vec2 fb = vec2(0.045, 0.05);
 	float inner = step(lo.x + fb.x, f.x) * step(f.x, hi.x - fb.x)
@@ -82,6 +91,11 @@ void fragment() {
 	float frame = inwin - inner;
 	float sill = step(lo.y - 0.06, f.y) * step(f.y, lo.y)
 			* step(lo.x, f.x) * step(f.x, hi.x) * vertical * (1.0 - storefront);
+
+	inwin *= 1.0 - is_door;
+	inner *= 1.0 - is_door;
+	frame *= 1.0 - is_door;
+	sill *= 1.0 - is_door;
 
 	// inset illusion: glass darkens toward the top of the aperture (fake overhang)
 	float glass_grad = mix(0.85, 0.35, smoothstep(lo.y, hi.y, f.y));
@@ -92,6 +106,8 @@ void fragment() {
 	col = mix(col, base * 0.5, frame);
 	col = mix(col, glass, inner);
 	col = mix(col, base * 1.3 + vec3(0.03), sill);
+	col = mix(col, base * 1.15, clamp(door_rim, 0.0, 1.0));
+	col = mix(col, vec3(0.13, 0.09, 0.06), door_mask);
 	col = mix(col, rooft * tint * 2.4, roofness);
 
 	ALBEDO = col;
