@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode cull_back;
+render_mode cull_back, depth_draw_opaque;
 
 uniform sampler2D depth_tex : hint_depth_texture, filter_linear;
 
@@ -41,4 +41,5 @@ void fragment() {
 	METALLIC = 0.0;
 	SPECULAR = 0.7;
 	ROUGHNESS = mix(0.04, 0.12, foam);
+	ALPHA = mix(0.82, 1.0, smoothstep(0.0, 8.0, water_depth));
 }
