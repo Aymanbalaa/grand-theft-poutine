@@ -30,8 +30,8 @@ void fragment() {
 	float scene_depth = -(vpos.xyz / vpos.w).z;
 	float water_depth = clamp(scene_depth + VERTEX.z, 0.0, 60.0);
 
-	vec3 deep = vec3(0.016, 0.045, 0.07);
-	vec3 shallow = vec3(0.06, 0.13, 0.14);
+	vec3 deep = vec3(0.03, 0.065, 0.095);
+	vec3 shallow = vec3(0.09, 0.17, 0.17);
 	vec3 col = mix(shallow, deep, smoothstep(0.0, 12.0, water_depth));
 
 	float foam = 1.0 - smoothstep(0.0, 2.2, water_depth);

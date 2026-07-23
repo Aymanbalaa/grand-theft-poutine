@@ -30,9 +30,9 @@ glow_intensity = 0.4
 glow_bloom = 0.1
 fog_enabled = true
 fog_light_color = Color(0.75, 0.82, 0.9, 1)
-fog_density = 0.00006
+fog_density = 0.00003
 fog_aerial_perspective = 0.6
-fog_sky_affect = 0.25
+fog_sky_affect = 0.1
 
 [sub_resource type="StandardMaterial3D" id="ground_mat"]
 albedo_color = Color(0.62, 0.63, 0.6, 1)
