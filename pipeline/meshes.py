@@ -299,6 +299,43 @@ def roadmark_mesh(r: Road, hm: Heightmap | None = None,
             parts.append(_paint(trimesh.Trimesh(vertices=np.array(everts),
                                                 faces=np.array(efaces), process=False),
                                 config.MARK_WHITE))
+    # crosswalks + stop bars at clear-interval boundaries that abut junctions.
+    # way-end boundaries sit exactly at SIDEWALK_END_TRIM / L - SIDEWALK_END_TRIM;
+    # interior boundaries are junction-caused.
+    L = sum(math.hypot(x2 - x1, z2 - z1)
+            for (x1, z1), (x2, z2) in zip(r.points[:-1], r.points[1:]))
+    trim = config.SIDEWALK_END_TRIM
+    cverts, cfaces = [], []
+    bw = r.width * 0.85
+
+    def _bars(start: float, direction: float) -> None:
+        # stop bar, then zebra, marching `direction` (+1 into the interval from lo,
+        # -1 into the interval from hi)
+        s0 = start + direction * config.STOPBAR_INSET
+        seg = _polyline_slice(r.points, min(s0, s0 + direction * config.STOPBAR_LEN),
+                              max(s0, s0 + direction * config.STOPBAR_LEN))
+        if len(seg) >= 2:
+            _strip_quads(_densify(seg), 0.0, bw, h, cverts, cfaces)
+        z0 = start + direction * config.CROSSWALK_INSET
+        step = config.CROSSWALK_BAR + config.CROSSWALK_GAP
+        for k in range(config.CROSSWALK_BARS):
+            a = z0 + direction * k * step
+            b = a + direction * config.CROSSWALK_BAR
+            seg = _polyline_slice(r.points, min(a, b), max(a, b))
+            if len(seg) >= 2:
+                _strip_quads(_densify(seg), 0.0, bw, h, cverts, cfaces)
+
+    for lo, hi in intervals:
+        if hi - lo < config.CROSSWALK_MIN_INTERVAL:
+            continue
+        if lo > trim + 0.01:          # boundary at lo abuts a junction
+            _bars(lo, 1.0)
+        if hi < L - trim - 0.01:      # boundary at hi abuts a junction
+            _bars(hi, -1.0)
+    if cfaces:
+        parts.append(_paint(trimesh.Trimesh(vertices=np.array(cverts),
+                                            faces=np.array(cfaces), process=False),
+                            config.MARK_WHITE))
     if not parts:
         return None
     return trimesh.util.concatenate(parts)

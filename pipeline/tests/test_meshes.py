@@ -244,6 +244,55 @@ def test_oneway_centerline_is_white():
     assert tuple(config.MARK_WHITE) in cols
     assert tuple(config.MARK_YELLOW) not in cols
 
+def test_crosswalks_at_junctions():
+    from pipeline.meshes import roadmark_mesh
+    from pipeline import config
+    # straight road with a junction at its middle vertex
+    r = Road(7, "Rue Test", [(0.0, 0.0), (60.0, 0.0), (120.0, 0.0)], 8.0, "residential")
+    junctions = frozenset({(60.0, 0.0)})
+    plain = roadmark_mesh(r, hm=None, junctions=frozenset())
+    marked = roadmark_mesh(r, hm=None, junctions=junctions)
+    # --- plain baseline (no junctions): one clear interval (8, 112), L=120 ---
+    # dashes at t = 8 + 9k while t+3 <= 112  =>  k = 0..11  =>  12 dashes
+    # each dash is one straight 2-point segment -> 1 quad -> 2 faces, 4 verts
+    assert len(plain.faces) == 24
+    assert len(plain.vertices) == 48
+    # --- marked (junction at x=60): splits into two clear intervals ---
+    # (8, 52) and (68, 112), each length 44 (>= CROSSWALK_MIN_INTERVAL=8)
+    # centerline dash phase restarts at each interval's lo:
+    #   (8, 52):  t = 8 + 9k,  t+3<=52  => k=0..4 => 5 dashes
+    #   (68, 112): t = 68 + 9k, t+3<=112 => k=0..4 => 5 dashes
+    # 10 dashes total -> 20 faces, 40 verts for the centerline part
+    # crosswalks: the boundary at x=52 (hi of interval 1, dir=-1) and the
+    # boundary at x=68 (lo of interval 2, dir=+1) both abut the junction.
+    # each gets 1 stop bar + CROSSWALK_BARS(4) zebra bars = 5 bars, each a
+    # single straight segment -> 1 quad -> 2 faces, 4 verts per bar.
+    # 2 boundaries * 5 bars = 10 bars -> 20 faces, 40 verts for the crosswalk part
+    # total: centerline(20 faces, 40 verts) + crosswalk(20 faces, 40 verts)
+    assert len(marked.faces) == 40
+    assert len(marked.vertices) == 80
+    # isolate the crosswalk-only vertices: they're the wide (bw = width*0.85)
+    # bars, distinct in |z| from the narrow (MARK_WIDTH) centerline dashes
+    wide = marked.vertices[np.abs(marked.vertices[:, 2]) > config.MARK_WIDTH / 2 + 1e-6]
+    assert len(wide) == 40  # 2 boundaries * 5 bars * 4 verts/bar
+    assert abs(np.abs(wide[:, 2]).max() - r.width * 0.85 / 2.0) < 1e-6
+    # bars sit inset from the junction: boundary at 52 -> stop bar [51.2, 51.6],
+    # zebra bars stepping 0.9m inward down to 47.35; boundary at 68 -> mirrored
+    # out to 72.65
+    assert abs(wide[:, 0].min() - 47.35) < 1e-6
+    assert abs(wide[:, 0].max() - 72.65) < 1e-6
+
+def test_no_crosswalks_without_junctions():
+    from pipeline.meshes import roadmark_mesh
+    r = Road(7, "Rue Test", [(0.0, 0.0), (60.0, 0.0), (120.0, 0.0)], 8.0, "residential")
+    m = roadmark_mesh(r, hm=None, junctions=frozenset())
+    # without junctions there's a single clear interval (8, 112) with no interior
+    # boundary, so no crosswalk/stop-bar part is added: 12 centerline dashes only
+    # (see derivation in test_crosswalks_at_junctions) -> 24 faces
+    assert len(m.faces) == 24
+    # deterministic across calls
+    assert len(m.faces) == len(roadmark_mesh(r, hm=None, junctions=frozenset()).faces)
+
 def test_jitter3_warmth_varies_per_building():
     from pipeline import meshes
     a = meshes._jitter3(101)
