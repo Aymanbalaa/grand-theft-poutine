@@ -5,6 +5,10 @@ data/
 tools/
 game/.godot/
 *.import
+# Godot auto-extracts embedded glTF textures into loose PNGs next to the
+# source model on import (deterministically regenerated from hydrant.glb's
+# embedded image data every `--import` run); not a source asset, don't track.
+game/assets/models/props/hydrant_Zombie_Atlas.png
 .pytest_cache/
 .superpowers/
 *.log

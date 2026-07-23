@@ -31,6 +31,22 @@ Six vehicle meshes (`sedan`, `suv`, `taxi`, `police`, `hatchback-sports`, `van`)
 `game/assets/models/cars/car0.glb` … `car5.glb`. Downloaded 2026-07-19.
 Full provenance and per-file mapping: [`game/assets/models/cars/SOURCE.md`](game/assets/models/cars/SOURCE.md).
 
+## Prop models
+
+**Nature Kit**, **City Kit (Roads)**, and **Furniture Kit** by Kenney (Kenney.nl).
+Sources: https://kenney.nl/assets/nature-kit, https://kenney.nl/assets/city-kit-roads,
+https://kenney.nl/assets/furniture-kit
+Licensed [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/) (Public Domain
+Dedication) — no attribution required, credited here anyway.
+Three tree meshes, one lamp post, and one bench committed as
+`game/assets/models/props/{tree0,tree1,tree2,lamp_post,bench}.glb`. Downloaded 2026-07-23.
+
+**Fire hydrant** by Quaternius, via [Poly Pizza](https://poly.pizza/m/DKkMQbEklp).
+Licensed [CC0 1.0 Universal / Public Domain](https://creativecommons.org/publicdomain/zero/1.0/).
+Committed as `game/assets/models/props/hydrant.glb`. Downloaded 2026-07-23.
+
+Full provenance and per-file mapping: [`game/assets/models/props/SOURCE.md`](game/assets/models/props/SOURCE.md).
+
 ## Engine
 
 **Godot Engine** — https://godotengine.org/
