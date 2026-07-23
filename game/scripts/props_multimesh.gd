@@ -15,12 +15,13 @@ const SPECS := [
 		"scale_min": 1.0, "scale_max": 1.0},
 ]
 
-# the Poly-Pizza-converted GLBs carry KHR_materials_unlit + metallic=1 + pastel
+# the Kenney tree/bench GLBs carry KHR_materials_unlit + metallic=1 + pastel
 # base colors (mint-teal foliage); replace known materials with shaded naturals
 const MAT_COLORS := {
 	"leafsGreen": Color(0.16, 0.40, 0.15),
 	"woodBark": Color(0.35, 0.24, 0.15),
 	"wood": Color(0.45, 0.30, 0.18),
+	"_defaultMat": Color(0.34, 0.32, 0.29),
 }
 
 var _counts := {}
@@ -51,11 +52,11 @@ const CULL_DIST := 1000.0
 func _build(spec: Dictionary, positions: Array) -> void:
 	if positions.is_empty():
 		return
-	var meshes: Array[Mesh] = []
+	var meshes: Array[Dictionary] = []
 	for path in spec["models"]:
-		var m := _first_mesh(path)
-		if m != null:
-			meshes.append(m)
+		var entry := _first_mesh(path)
+		if not entry.is_empty():
+			meshes.append(entry)
 	if meshes.is_empty():
 		return
 	# bucket positions by (model variant via position hash, chunk cell)
@@ -75,13 +76,14 @@ func _build(spec: Dictionary, positions: Array) -> void:
 		var center := Vector3((cell.x + 0.5) * CHUNK, 0.0, (cell.y + 0.5) * CHUNK)
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = meshes[key[0]]
+		mm.mesh = meshes[key[0]]["mesh"]
+		var model_xf: Transform3D = meshes[key[0]]["xform"]
 		mm.instance_count = pts.size()
 		for j in pts.size():
 			var v: Vector3 = pts[j]
 			var yaw := _hash01(v.x, v.z, 3.1) * TAU
 			var s: float = lerp(spec["scale_min"], spec["scale_max"], _hash01(v.x, v.z, 5.3))
-			var xf := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), v - center)
+			var xf := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), v - center) * model_xf
 			mm.set_instance_transform(j, xf)
 		var inst := MultiMeshInstance3D.new()
 		inst.multimesh = mm
@@ -92,18 +94,24 @@ func _build(spec: Dictionary, positions: Array) -> void:
 		total += pts.size()
 	_counts[spec["key"]] = total
 
-static func _first_mesh(path: String) -> Mesh:
+# returns {"mesh": Mesh, "xform": Transform3D} — the accumulated node transform
+# matters: some packs carry meaning in it (the hydrant is mm-scale vertices
+# under a scale-100 node; trees sink their root flare via a -0.05 translation)
+static func _first_mesh(path: String) -> Dictionary:
 	if not ResourceLoader.exists(path):
-		return null
+		return {}
 	var scene = load(path)
 	if scene == null:
-		return null
+		return {}
 	var root = scene.instantiate()
-	var mesh := _find_mesh(root)
+	var found := _find_mesh(root, Transform3D.IDENTITY)
 	root.free()
-	return mesh
+	return found
 
-static func _find_mesh(node: Node) -> Mesh:
+static func _find_mesh(node: Node, xform: Transform3D) -> Dictionary:
+	var n3d := node as Node3D
+	if n3d != null:
+		xform = xform * n3d.transform
 	var mi := node as MeshInstance3D
 	if mi != null and mi.mesh != null:
 		var m := mi.mesh
@@ -119,9 +127,9 @@ static func _find_mesh(node: Node) -> Mesh:
 				m.surface_set_material(s, fixed)
 			else:
 				m.surface_set_material(s, mat)
-		return m
+		return {"mesh": m, "xform": xform}
 	for child in node.get_children():
-		var found := _find_mesh(child)
-		if found != null:
+		var found := _find_mesh(child, xform)
+		if not found.is_empty():
 			return found
-	return null
+	return {}

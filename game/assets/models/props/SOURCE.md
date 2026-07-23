@@ -183,8 +183,10 @@ carries a `scale: [100, 100, 100]` to bring it to the dimensions above. A naive
 explicitly (rather than relying on `Node3D.global_transform`, which requires the node to be
 inside a live, ticked `SceneTree` and otherwise silently returns identity) specifically so this
 kind of scaled intermediate node is measured correctly. 0.77 m tall is a realistic real-world fire
-hydrant height, so this model is very close to true scale already — unlike the Kenney kit props
-above, it likely needs little to no rescaling in Task 4.
+hydrant height, so this model is very close to true scale already — BUT only when the scale-100
+intermediate node is honored: the renderer's `_find_mesh` accumulates node transforms into the
+instance transforms precisely so this model renders at 0.77 m (raw mesh vertices are millimeter
+scale; a spec scale of 1.0 with the transform chain ignored would render an 8 mm hydrant).
 
 ## Not skipped
 

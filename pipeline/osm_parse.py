@@ -184,8 +184,8 @@ def parse_osm(xml_path: str | Path) -> CityData:
     s, w, n, e = config.BBOX
     def _in_bbox(latlon: tuple) -> bool:
         return s <= latlon[0] <= n and w <= latlon[1] <= e
-    # bbox-filter point props: baked geometry used to clip them to tiles implicitly,
-    # but metadata-driven props render wherever listed (M8c: trees floated off-world)
+    # bbox-guard point props (no-op for the bbox-bounded cached extract; protects
+    # future refetches from listing metadata props outside the world, like signals)
     city.trees = [latlon_to_xz(*tree_ids[i]) for i in sorted(tree_ids) if _in_bbox(tree_ids[i])]
     city.lamps = [latlon_to_xz(*lamp_ids[i]) for i in sorted(lamp_ids)]
     city.benches = [latlon_to_xz(*bench_ids[i]) for i in sorted(bench_ids) if _in_bbox(bench_ids[i])]
