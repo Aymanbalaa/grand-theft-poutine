@@ -3,6 +3,7 @@ shader_type spatial;
 uniform sampler2D asphalt_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float uv_scale = 0.08;
 uniform float brighten = 3.2;
+uniform float wear_strength = 1.0;
 
 varying vec3 wpos;
 varying vec3 vtint;
@@ -25,7 +26,7 @@ void fragment() {
 	vec3 asph = texture(asphalt_tex, wpos.xz * uv_scale).rgb;
 	// patchy wear: broad tonal drift + finer repair blotches
 	float wear = rnoise(wpos.xz * 0.013) * 0.7 + rnoise(wpos.xz * 0.06) * 0.3;
-	vec3 col = asph * vtint * brighten * mix(0.78, 1.12, wear);
+	vec3 col = asph * vtint * brighten * mix(1.0 - 0.22 * wear_strength, 1.0 + 0.12 * wear_strength, wear);
 	ALBEDO = col;
 	ROUGHNESS = 0.92;
 	METALLIC = 0.0;

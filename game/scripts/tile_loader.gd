@@ -11,11 +11,11 @@ var _camera: Camera3D
 var _city_mat := _make_city_material()
 var _building_mat := _make_building_material()
 var _water_mat := _make_shader_material("res://shaders/water.gdshader")
-var _road_mat := _make_road_material()
-var _sidewalk_mat := _make_triplanar_material("paving", 0.5, 1.8)
+var _road_mat := _make_surface_material("asphalt", 0.08, 3.2, 1.0)
+var _sidewalk_mat := _make_surface_material("paving", 0.5, 1.8, 0.35)
 var _marks_mat := _make_marks_material()
 var _terrain_mat := _make_terrain_material()
-var _path_mat := _make_triplanar_material("ground", 0.35, 1.15)
+var _path_mat := _make_surface_material("ground", 0.35, 1.15, 0.5)
 
 static func _make_city_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -41,22 +41,6 @@ static func _make_building_material() -> ShaderMaterial:
 			m.set_shader_parameter(slot + "_tex", load(path))
 	return m
 
-static func _make_triplanar_material(slot: String, uv_scale: float, brighten: float) -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.vertex_color_use_as_albedo = true
-	m.vertex_color_is_srgb = true
-	m.albedo_color = Color(brighten, brighten, brighten)
-	m.uv1_triplanar = true
-	m.uv1_world_triplanar = true
-	m.uv1_scale = Vector3(uv_scale, uv_scale, uv_scale)
-	var alb := "res://assets/textures/pbr/%s_alb.jpg" % slot
-	if ResourceLoader.exists(alb):
-		m.albedo_texture = load(alb)
-	# no normal maps: tiles carry no tangents, and triplanar normal mapping
-	# without them renders streak artifacts (tangent-frame garbage)
-	m.roughness = 0.92
-	return m
-
 static func _make_marks_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.vertex_color_use_as_albedo = true
@@ -65,13 +49,16 @@ static func _make_marks_material() -> StandardMaterial3D:
 	m.roughness = 0.55
 	return m
 
-static func _make_road_material() -> ShaderMaterial:
+static func _make_surface_material(slot: String, uv_scale: float, brighten: float, wear: float) -> ShaderMaterial:
 	var m := _make_shader_material("res://shaders/road.gdshader")
 	if m == null:
 		return null
-	var path := "res://assets/textures/pbr/asphalt_alb.jpg"
+	var path := "res://assets/textures/pbr/%s_alb.jpg" % slot
 	if ResourceLoader.exists(path):
 		m.set_shader_parameter("asphalt_tex", load(path))
+	m.set_shader_parameter("uv_scale", uv_scale)
+	m.set_shader_parameter("brighten", brighten)
+	m.set_shader_parameter("wear_strength", wear)
 	return m
 
 static func _make_terrain_material() -> ShaderMaterial:
@@ -97,9 +84,9 @@ func _apply_city_material(node: Node) -> void:
 			inst.material_override = _marks_mat
 		elif _road_mat != null and n.begins_with("roads"):
 			inst.material_override = _road_mat
-		elif n.begins_with("sidewalks"):
+		elif _sidewalk_mat != null and n.begins_with("sidewalks"):
 			inst.material_override = _sidewalk_mat
-		elif n.begins_with("paths"):
+		elif _path_mat != null and n.begins_with("paths"):
 			inst.material_override = _path_mat
 		elif _terrain_mat != null and n.begins_with("terrain"):
 			inst.material_override = _terrain_mat
