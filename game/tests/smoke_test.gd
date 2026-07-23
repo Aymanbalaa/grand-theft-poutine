@@ -89,6 +89,19 @@ func _init() -> void:
 		quit(1)
 		return
 	print("LIGHTS OK: %d lamps" % pool.call("lamp_count"))
+	var props := root.get_node_or_null("Props")
+	if props == null or props.call("instance_count", "trees") < 10000:
+		var tc: int = -1 if props == null else props.call("instance_count", "trees")
+		push_error("FAIL: props missing or trees not loaded (trees=%d)" % tc)
+		quit(1)
+		return
+	if props.call("instance_count", "lamps") != 499:
+		push_error("FAIL: prop lamps mismatch (lamps=%d)" % props.call("instance_count", "lamps"))
+		quit(1)
+		return
+	print("PROPS OK: %d trees, %d lamps, %d benches, %d hydrants" % [
+			props.call("instance_count", "trees"), props.call("instance_count", "lamps"),
+			props.call("instance_count", "benches"), props.call("instance_count", "hydrants")])
 	if root.get_node_or_null("Credits") == null or not InputMap.has_action("credits"):
 		push_error("FAIL: credits overlay or action missing")
 		quit(1)
