@@ -59,7 +59,9 @@ void sky() {
 	float disc = smoothstep(0.9993, 0.9998, cs);
 	float halo = pow(clamp(cs, 0.0, 1.0), 350.0) * 0.5 + pow(clamp(cs, 0.0, 1.0), 24.0) * 0.12;
 	vec3 sun_tint = mix(vec3(1.0, 0.55, 0.25), vec3(1.0, 0.97, 0.9), daylight);
-	col += (disc * 12.0 + halo) * sun_tint * smoothstep(-0.06, 0.02, sun_h);
+	// gate on daylight, not raw elevation: this sun never dips below ~6 deg,
+	// so an elevation gate leaves a warm disc burning in the night sky
+	col += (disc * 12.0 + halo) * sun_tint * smoothstep(0.05, 0.25, daylight);
 
 	// stars
 	float night = 1.0 - daylight;
