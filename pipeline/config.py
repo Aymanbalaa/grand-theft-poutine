@@ -117,6 +117,8 @@ TEXTURE_SLOTS = {
     "asphalt":  {"preferred": "Road012A",         "query": "asphalt",          "maps": ["Color", "NormalGL", "Roughness"]},
     "paving":   {"preferred": "PavingStones128",  "query": "concrete paving",  "maps": ["Color", "NormalGL", "Roughness"]},
     "ground":   {"preferred": "Ground037",        "query": "dirt ground",      "maps": ["Color", "NormalGL", "Roughness"]},
+    "grass":    {"preferred": "Grass001",         "query": "grass lawn",       "maps": ["Color"]},
+    "rock":     {"preferred": "Rock030",          "query": "rock cliff",       "maps": ["Color"]},
 }
 AMBIENTCG_DL = "https://ambientcg.com/get?file={id}_1K-JPG.zip"
 AMBIENTCG_API = "https://ambientcg.com/api/v2/full_json?type=Material&include=downloadData&q={q}"

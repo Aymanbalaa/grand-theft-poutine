@@ -117,3 +117,12 @@ def test_fallback_then_cache_hit(tmp_path):
         raise AssertionError("network touched on fallback cache hit: " + url)
     ids2 = ensure_textures(cache_dir=tmp_path / "c", out_dir=tmp_path / "o2", fetch=no_net)
     assert ids2["roof"] == "FallbackY"
+
+def test_grass_and_rock_slots_extract_color_maps(tmp_path):
+    out = tmp_path / "out"
+    ensure_textures(cache_dir=tmp_path / "cache", out_dir=out, fetch=_fetch_ok)
+    assert (out / "grass_alb.jpg").exists()
+    assert (out / "rock_alb.jpg").exists()
+    # Color-only slots: no normal/roughness extracted
+    assert not (out / "grass_nrm.jpg").exists()
+    assert not (out / "rock_rgh.jpg").exists()
