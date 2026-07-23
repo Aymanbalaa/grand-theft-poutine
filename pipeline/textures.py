@@ -22,7 +22,8 @@ def _default_fetch(url: str) -> bytes:
     raise RuntimeError(f"download failed after retries: {url}") from last
 
 def _resolve_id(slot: str, spec: dict, fetch) -> str:
-    probe = config.AMBIENTCG_DL.format(id=spec["preferred"])
+    res = spec.get("res", "1K")
+    probe = config.AMBIENTCG_DL.format(id=spec["preferred"], res=res)
     try:
         head = fetch(probe)
         if head:
@@ -52,23 +53,25 @@ def ensure_textures(cache_dir="data/textures", out_dir="game/assets/textures/pbr
     lock: dict = json.loads(lock_path.read_text()) if lock_path.exists() else {}
     ids: dict[str, str] = {}
     for slot, spec in sorted(config.TEXTURE_SLOTS.items()):
+        res = spec.get("res", "1K")
         entry = lock.get(slot)
-        zpath = cache / f"{entry['id']}.zip" if entry else None
-        if (entry and entry.get("preferred") == spec["preferred"] and zpath.exists()
+        zpath = cache / f"{entry['id']}_{entry.get('res', '1K')}.zip" if entry else None
+        if (entry and entry.get("preferred") == spec["preferred"]
+                and entry.get("res", "1K") == res and zpath.exists()
                 and hashlib.sha256(zpath.read_bytes()).hexdigest() == entry["sha256"]):
             asset_id = entry["id"]
         else:
             asset_id = spec["preferred"]
             try:
-                blob = fetch(config.AMBIENTCG_DL.format(id=asset_id))
+                blob = fetch(config.AMBIENTCG_DL.format(id=asset_id, res=res))
             except Exception:
                 asset_id = _resolve_id(slot, spec, fetch)
-                blob = fetch(config.AMBIENTCG_DL.format(id=asset_id))
-            zpath = cache / f"{asset_id}.zip"
+                blob = fetch(config.AMBIENTCG_DL.format(id=asset_id, res=res))
+            zpath = cache / f"{asset_id}_{res}.zip"
             zpath.write_bytes(blob)
             lock[slot] = {"id": asset_id, "sha256": hashlib.sha256(blob).hexdigest(),
-                          "url": config.AMBIENTCG_DL.format(id=asset_id),
-                          "preferred": spec["preferred"]}
+                          "url": config.AMBIENTCG_DL.format(id=asset_id, res=res),
+                          "preferred": spec["preferred"], "res": res}
             lock_path.write_text(json.dumps(lock, indent=1, sort_keys=True))
         ids[slot] = asset_id
         with zipfile.ZipFile(zpath) as z:

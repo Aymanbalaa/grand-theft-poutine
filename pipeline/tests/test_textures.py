@@ -50,7 +50,7 @@ def test_lock_records_sha256(tmp_path):
     for slot in config.TEXTURE_SLOTS:
         assert len(lock[slot]["sha256"]) == 64
     entry = lock["asphalt"]
-    zpath = cache_dir / f"{entry['id']}.zip"
+    zpath = cache_dir / f"{entry['id']}_{entry['res']}.zip"
     assert entry["sha256"] == hashlib.sha256(zpath.read_bytes()).hexdigest()
 
 def test_preferred_change_invalidates_cache(tmp_path, monkeypatch):
@@ -126,3 +126,12 @@ def test_grass_and_rock_slots_extract_color_maps(tmp_path):
     # Color-only slots: no normal/roughness extracted
     assert not (out / "grass_nrm.jpg").exists()
     assert not (out / "rock_rgh.jpg").exists()
+
+def test_slot_res_selects_download_url(tmp_path):
+    urls = []
+    def fetch(url):
+        urls.append(url)
+        return _fetch_ok(url)          # existing helper serves a valid zip regardless
+    ensure_textures(cache_dir=tmp_path / "cache", out_dir=tmp_path / "out", fetch=fetch)
+    assert any("Bricks059_2K-JPG.zip" in u for u in urls)      # res-tagged slot
+    assert any("Road012A_1K-JPG.zip" in u for u in urls)       # default stays 1K

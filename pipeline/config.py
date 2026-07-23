@@ -110,9 +110,9 @@ WALL_ALPHA_BASE_MAX = 39
 
 # --- M6a textures (ambientCG, CC0). preferred id first, API search query as fallback. ---
 TEXTURE_SLOTS = {
-    "brick":    {"preferred": "Bricks059",        "query": "red brick",        "maps": ["Color"]},
-    "stone":    {"preferred": "Bricks075A",       "query": "stone bricks wall","maps": ["Color"]},
-    "concrete": {"preferred": "Concrete034",      "query": "concrete",         "maps": ["Color"]},
+    "brick":    {"preferred": "Bricks059",        "query": "red brick",        "maps": ["Color"], "res": "2K"},
+    "stone":    {"preferred": "Bricks075A",       "query": "stone bricks wall","maps": ["Color"], "res": "2K"},
+    "concrete": {"preferred": "Concrete034",      "query": "concrete",         "maps": ["Color"], "res": "2K"},
     "roof":     {"preferred": "Gravel022",        "query": "gravel",           "maps": ["Color"]},
     "asphalt":  {"preferred": "Road012A",         "query": "asphalt",          "maps": ["Color", "NormalGL", "Roughness"]},
     "paving":   {"preferred": "PavingStones128",  "query": "concrete paving",  "maps": ["Color", "NormalGL", "Roughness"]},
@@ -120,7 +120,7 @@ TEXTURE_SLOTS = {
     "grass":    {"preferred": "Grass001",         "query": "grass lawn",       "maps": ["Color"]},
     "rock":     {"preferred": "Rock030",          "query": "rock cliff",       "maps": ["Color"]},
 }
-AMBIENTCG_DL = "https://ambientcg.com/get?file={id}_1K-JPG.zip"
+AMBIENTCG_DL = "https://ambientcg.com/get?file={id}_{res}-JPG.zip"
 AMBIENTCG_API = "https://ambientcg.com/api/v2/full_json?type=Material&include=downloadData&q={q}"
 
 # --- M6a sidewalks & road markings ---
