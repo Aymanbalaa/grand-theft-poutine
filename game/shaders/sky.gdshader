@@ -1,6 +1,6 @@
 shader_type sky;
 
-uniform float cloud_coverage : hint_range(0.0, 1.0) = 0.55;
+uniform float cloud_coverage : hint_range(0.0, 1.0) = 0.62;
 uniform float cloud_speed = 0.005;
 uniform float cloud_scale = 0.8;
 
@@ -72,12 +72,12 @@ void sky() {
 	// clouds
 	if (dir.y > 0.015) {
 		vec2 cuv = dir.xz / (dir.y * 3.0 + 0.35) * cloud_scale + vec2(TIME * cloud_speed);
-		float d = fbm(cuv);
-		float cov = smoothstep(1.0 - cloud_coverage, 1.0 - cloud_coverage + 0.28, d);
+		float d = fbm(cuv) * 1.15;
+		float cov = smoothstep(1.0 - cloud_coverage, 1.0 - cloud_coverage + 0.18, d);
 		cov *= smoothstep(0.015, 0.12, dir.y);
 		vec3 cloud_lit = mix(vec3(0.03, 0.035, 0.06), vec3(1.0, 0.99, 0.96), daylight);
 		cloud_lit = mix(cloud_lit, vec3(1.0, 0.55, 0.3), twilight * 0.7);
-		float shade = mix(0.45, 1.0, smoothstep(0.2, 0.9, d));
+		float shade = mix(0.35, 1.0, smoothstep(0.2, 0.9, d));
 		col = mix(col, cloud_lit * shade, cov * 0.92);
 	}
 
