@@ -82,14 +82,10 @@ def test_export_preserves_props(tmp_path):
         names |= set(trimesh.load(tmp_path / t["file"]).geometry.keys())
     assert "props" in names
 
-def test_tree_cap_deterministic(monkeypatch):
-    from pipeline import config
-    monkeypatch.setattr(config, "MAX_TREES_PER_TILE", 1)
+def test_prop_positions_in_metadata(tmp_path):
     city = parse_osm(FIX)
-    t1 = build_tiles(city)
-    t2 = build_tiles(city)
-    for k in t1:
-        if "props" in t1[k].geometry:
-            a = t1[k].geometry["props"].vertices
-            b = t2[k].geometry["props"].vertices
-            assert (a == b).all()
+    meta = export_city(city, tmp_path)
+    for key in ("trees", "benches", "hydrants"):
+        assert key in meta
+        assert all(len(p) == 3 for p in meta[key])
+    assert len(meta["trees"]) >= 1

@@ -73,11 +73,6 @@ LANDMARKS = [
 ]
 
 # --- M3.5 Task 3: street trees & lamps ---
-MAX_TREES_PER_TILE = 300
-TREE_CANOPY_COLORS = ((58, 110, 52), (74, 124, 58))
-TREE_TRUNK_COLOR = (92, 64, 40)
-LAMP_POLE_COLOR = (70, 72, 76)
-LAMP_HEAD_COLOR = (255, 214, 130)
 TRAFFIC_POLE_COLOR = (55, 58, 62)
 
 # --- Street-name HUD ---

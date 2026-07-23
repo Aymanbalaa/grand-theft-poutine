@@ -39,6 +39,8 @@ class CityData:
     trees: list[tuple[float, float]] = field(default_factory=list)
     lamps: list[tuple[float, float]] = field(default_factory=list)
     signals: list[tuple[float, float]] = field(default_factory=list)
+    benches: list[tuple[float, float]] = field(default_factory=list)
+    hydrants: list[tuple[float, float]] = field(default_factory=list)
 
 _NUM = re.compile(r"[-+]?\d*\.?\d+")
 
@@ -122,6 +124,8 @@ def parse_osm(xml_path: str | Path) -> CityData:
     tree_ids: dict[int, tuple[float, float]] = {}
     lamp_ids: dict[int, tuple[float, float]] = {}
     signal_ids: dict[int, tuple[float, float]] = {}
+    bench_ids: dict[int, tuple[float, float]] = {}
+    hydrant_ids: dict[int, tuple[float, float]] = {}
     way_refs: dict[int, list[int]] = {}
     city = CityData()
     for _, el in ET.iterparse(str(xml_path), events=("end",)):
@@ -136,6 +140,10 @@ def parse_osm(xml_path: str | Path) -> CityData:
                     lamp_ids[nid] = nodes[nid]
                 elif tags.get("highway") == "traffic_signals":
                     signal_ids[nid] = nodes[nid]
+                elif tags.get("amenity") == "bench":
+                    bench_ids[nid] = nodes[nid]
+                elif tags.get("emergency") == "fire_hydrant":
+                    hydrant_ids[nid] = nodes[nid]
         elif el.tag == "way":
             wid = int(el.get("id"))
             tags = {t.get("k"): t.get("v") for t in el.findall("tag")}
@@ -175,6 +183,8 @@ def parse_osm(xml_path: str | Path) -> CityData:
     city.areas.sort(key=lambda a: a.osm_id)
     city.trees = [latlon_to_xz(*tree_ids[i]) for i in sorted(tree_ids)]
     city.lamps = [latlon_to_xz(*lamp_ids[i]) for i in sorted(lamp_ids)]
+    city.benches = [latlon_to_xz(*bench_ids[i]) for i in sorted(bench_ids)]
+    city.hydrants = [latlon_to_xz(*hydrant_ids[i]) for i in sorted(hydrant_ids)]
     s, w, n, e = config.BBOX
     city.signals = [latlon_to_xz(*signal_ids[i]) for i in sorted(signal_ids)
                     if s <= signal_ids[i][0] <= n and w <= signal_ids[i][1] <= e]

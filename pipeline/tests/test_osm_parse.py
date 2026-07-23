@@ -85,3 +85,9 @@ def test_parses_oneway():
     ow = {r.osm_id: r.oneway for r in city.roads}
     assert ow[90] is True
     assert any(not v for v in ow.values())
+
+def test_benches_and_hydrants_parsed():
+    city = parse_osm(FIX)   # same fixture-loading call as test_trees_and_lamps_parsed
+    assert len(city.benches) == 1
+    assert len(city.hydrants) == 1
+    assert all(len(p) == 2 for p in city.benches + city.hydrants)

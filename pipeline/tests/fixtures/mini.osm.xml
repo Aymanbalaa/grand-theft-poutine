@@ -21,6 +21,8 @@
   <node id="52" lat="45.5041" lon="-73.5552"><tag k="highway" v="street_lamp"/></node>
   <node id="53" lat="45.5040" lon="-73.5555"><tag k="highway" v="traffic_signals"/></node>
   <node id="54" lat="45.6000" lon="-73.4000"><tag k="highway" v="traffic_signals"/></node>
+  <node id="55" lat="45.5045" lon="-73.5549"><tag k="amenity" v="bench"/></node>
+  <node id="56" lat="45.5046" lon="-73.5551"><tag k="emergency" v="fire_hydrant"/></node>
   <way id="100">
     <nd ref="1"/><nd ref="2"/>
     <tag k="highway" v="primary"/><tag k="name" v="Rue Sainte-Catherine"/>

@@ -4,7 +4,7 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 from shapely.geometry import Polygon, LineString
-from trimesh.creation import extrude_polygon, triangulate_polygon, icosphere, cylinder
+from trimesh.creation import extrude_polygon, triangulate_polygon
 from pipeline.osm_parse import Building, Road, Area
 from pipeline.terrain import Heightmap
 from pipeline import config
@@ -330,30 +330,6 @@ def area_mesh(a: Area) -> trimesh.Trimesh | None:
     if not poly.is_valid:
         poly = poly.buffer(0)
     return area_piece_mesh(poly, a.kind)
-
-def tree_mesh(x: float, z: float, y: float, seed: int) -> trimesh.Trimesh:
-    h = 4.0 + (seed * 2654435761 % 5) * 0.5          # 4.0-6.0 m, deterministic
-    trunk = cylinder(radius=0.22, height=h * 0.45, sections=5)
-    trunk.apply_transform(_ZUP_TO_YUP)
-    trunk.apply_translation([0, h * 0.225, 0])
-    _paint(trunk, config.TREE_TRUNK_COLOR)
-    canopy = icosphere(subdivisions=0, radius=h * 0.38)
-    canopy.apply_translation([0, h * 0.72, 0])
-    _paint(canopy, config.TREE_CANOPY_COLORS[seed % 2])
-    m = trimesh.util.concatenate([trunk, canopy])
-    m.apply_translation([x, y, z])
-    return m
-
-def lamp_mesh(x: float, z: float, y: float) -> trimesh.Trimesh:
-    pole = trimesh.creation.box((0.25, 5.0, 0.25))
-    pole.apply_translation([0, 2.5, 0])
-    _paint(pole, config.LAMP_POLE_COLOR)
-    head = trimesh.creation.box((1.0, 0.35, 0.4))
-    head.apply_translation([0.45, 5.0, 0])
-    _paint(head, config.LAMP_HEAD_COLOR)
-    m = trimesh.util.concatenate([pole, head])
-    m.apply_translation([x, y, z])
-    return m
 
 def traffic_light_mesh(x: float, z: float, y: float) -> trimesh.Trimesh:
     pole_h = 4.6
