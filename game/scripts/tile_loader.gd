@@ -14,6 +14,8 @@ var _water_mat := _make_shader_material("res://shaders/water.gdshader")
 var _road_mat := _make_triplanar_material("asphalt", 0.08, 3.2)
 var _sidewalk_mat := _make_triplanar_material("paving", 0.8, 1.8)
 var _marks_mat := _make_marks_material()
+var _terrain_mat := _make_terrain_material()
+var _path_mat := _make_triplanar_material("ground", 0.35, 1.15)
 
 static func _make_city_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -65,6 +67,17 @@ static func _make_marks_material() -> StandardMaterial3D:
 	m.roughness = 0.55
 	return m
 
+static func _make_terrain_material() -> ShaderMaterial:
+	var m := _make_shader_material("res://shaders/terrain.gdshader")
+	if m == null:
+		return null
+	var slots := {"grass_tex": "grass", "dirt_tex": "ground", "rock_tex": "rock"}
+	for p in slots:
+		var path := "res://assets/textures/pbr/%s_alb.jpg" % slots[p]
+		if ResourceLoader.exists(path):
+			m.set_shader_parameter(p, load(path))
+	return m
+
 func _apply_city_material(node: Node) -> void:
 	for mi in node.find_children("*", "MeshInstance3D", true, false):
 		var inst := mi as MeshInstance3D
@@ -77,8 +90,12 @@ func _apply_city_material(node: Node) -> void:
 			inst.material_override = _marks_mat
 		elif n.begins_with("roads"):
 			inst.material_override = _road_mat
-		elif n.begins_with("sidewalks") or n.begins_with("paths"):
+		elif n.begins_with("sidewalks"):
 			inst.material_override = _sidewalk_mat
+		elif n.begins_with("paths"):
+			inst.material_override = _path_mat
+		elif _terrain_mat != null and n.begins_with("terrain"):
+			inst.material_override = _terrain_mat
 		else:
 			inst.material_override = _city_mat
 
