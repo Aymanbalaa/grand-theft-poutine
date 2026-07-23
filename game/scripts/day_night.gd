@@ -41,4 +41,4 @@ func _process(delta: float) -> void:
 		_env.volumetric_fog_enabled = vnight > 0.25
 		# low density: extinction applies to the whole vista beyond fog length,
 		# so halos come from per-light volumetric energy, not thick fog
-		_env.volumetric_fog_density = 0.003 * smoothstep(0.25, 0.7, vnight)
+		_env.volumetric_fog_density = 0.004 * smoothstep(0.25, 0.7, vnight)

@@ -1,4 +1,4 @@
-﻿extends Node3D
+extends Node3D
 class_name LightPool
 # Recycles a fixed pool of OmniLights onto the nearest street-lamp heads
 # around the active camera at night. 499 lamps, 24 lights, zero shadows.
@@ -28,7 +28,7 @@ func _ready() -> void:
 		l.omni_range = 20.0
 		l.light_energy = 0.0
 		l.shadow_enabled = false
-		l.light_volumetric_fog_energy = 6.0
+		l.light_volumetric_fog_energy = 10.0
 		add_child(l)
 		_lights.append(l)
 
