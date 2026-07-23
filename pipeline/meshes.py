@@ -18,9 +18,13 @@ def _densify(points: list[tuple[float, float]], max_len: float = 24.0) -> list[t
             out.append((x1 + (x2 - x1) * i / steps, z1 + (z2 - z1) * i / steps))
     return out
 
-def _jitter(osm_id: int) -> float:
-    """Deterministic per-id shade factor in [0.88, 1.08]."""
-    return 0.88 + 0.2 * ((osm_id * 2654435761) % 1000) / 1000.0
+def _jitter3(osm_id: int) -> np.ndarray:
+    """Deterministic per-building tone: brightness in [0.86, 1.10] plus a
+    warm/cool shift of up to +-6% between the red and blue channels."""
+    h = (osm_id * 2654435761) % (2 ** 32)
+    bright = 0.86 + 0.24 * ((h & 1023) / 1023.0)
+    warm = -0.06 + 0.12 * (((h >> 10) & 1023) / 1023.0)
+    return np.array([bright * (1.0 + warm), bright, bright * (1.0 - warm)])
 
 def _paint(mesh: trimesh.Trimesh, rgb: tuple, factor: float = 1.0,
            alpha: int = 255) -> trimesh.Trimesh:
@@ -103,9 +107,9 @@ def building_mesh(b: Building, hm: Heightmap | None = None) -> trimesh.Trimesh |
     if cat == "residential" and b.height <= 13.0:
         roof = _gable_roof(poly, top_y)
     if roof is None:
-        roof = _roof_cap(poly, top_y, building_color(b), _jitter(b.osm_id))
+        roof = _roof_cap(poly, top_y, building_color(b), _jitter3(b.osm_id))
     q = min(config.WALL_ALPHA_BASE_MAX, max(0, round(base_y / config.WALL_ALPHA_BASE_STEP)))
-    walls = _paint(mesh, building_color(b), _jitter(b.osm_id),
+    walls = _paint(mesh, building_color(b), _jitter3(b.osm_id),
                    alpha=config.WALL_CATEGORY_ALPHA.get(cat, 5) * 40 + q)
     return trimesh.util.concatenate([walls, roof])
 
@@ -234,7 +238,13 @@ def sidewalk_mesh(r: Road, hm: Heightmap | None = None,
     if not faces:
         return None
     mesh = trimesh.Trimesh(vertices=np.array(verts), faces=np.array(faces), process=False)
-    return _paint(mesh, config.SIDEWALK_COLOR)
+    curb = np.array([*config.CURB_COLOR, 255], dtype=np.uint8)
+    walk = np.array([*config.SIDEWALK_COLOR, 255], dtype=np.uint8)
+    colors = np.tile(walk, (len(mesh.vertices), 1))
+    colors[0::4] = curb   # curb bottom
+    colors[1::4] = curb   # curb top (shared edge blends into the walk face - fine, both grey)
+    mesh.visual.vertex_colors = colors
+    return mesh
 
 def _strip_quads(pts: list[tuple[float, float]], offset: float, width: float,
                  h, verts: list, faces: list) -> None:

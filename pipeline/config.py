@@ -130,6 +130,7 @@ SIDEWALK_RAISE = 0.12
 CURB_RUN = 0.18            # horizontal run of the curb face (~33 deg -> climbable)
 SIDEWALK_END_TRIM = 8.0    # skip near way ends = intersection clearance
 SIDEWALK_COLOR = (168, 164, 156)
+CURB_COLOR = (146, 143, 138)   # darker concrete lip, distinct from sidewalk paving
 
 ROADMARK_CLASSES = ("primary", "secondary", "tertiary", "residential")
 EDGE_LINE_CLASSES = ("primary", "secondary")

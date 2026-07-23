@@ -243,3 +243,29 @@ def test_oneway_centerline_is_white():
     cols = {tuple(c[:3]) for c in m.visual.vertex_colors}
     assert tuple(config.MARK_WHITE) in cols
     assert tuple(config.MARK_YELLOW) not in cols
+
+def test_jitter3_warmth_varies_per_building():
+    from pipeline import meshes
+    a = meshes._jitter3(101)
+    b = meshes._jitter3(202)
+    assert a.shape == (3,)
+    # bounded so the category hue stays readable
+    assert np.all(a > 0.80) and np.all(a < 1.17)
+    # warm/cool axis differs between buildings (not just brightness)
+    assert abs(a[0] / a[2] - b[0] / b[2]) > 1e-6
+
+def test_building_walls_carry_tone_variation():
+    # two identical buildings differing only by osm_id -> different wall RGB
+    b1 = building_mesh(Building(11, SQ, 30.0, "apartments"))
+    b2 = building_mesh(Building(12, SQ, 30.0, "apartments"))
+    c1 = b1.visual.vertex_colors[0][:3]
+    c2 = b2.visual.vertex_colors[0][:3]
+    assert not np.array_equal(c1, c2)
+
+def test_sidewalk_curb_distinct_color():
+    from pipeline.meshes import sidewalk_mesh
+    from pipeline import config
+    m = sidewalk_mesh(_mk_road())
+    cols = {tuple(c[:3]) for c in m.visual.vertex_colors}
+    assert tuple(config.CURB_COLOR) in cols
+    assert tuple(config.SIDEWALK_COLOR) in cols
