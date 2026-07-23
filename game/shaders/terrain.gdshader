@@ -1,8 +1,8 @@
 shader_type spatial;
 
-uniform sampler2D grass_tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D dirt_tex : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D rock_tex : source_color, filter_linear_mipmap, repeat_enable;
+uniform sampler2D grass_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D dirt_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rock_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float uv_scale = 0.025;
 
 varying vec3 wpos;
