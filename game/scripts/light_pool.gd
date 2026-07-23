@@ -28,6 +28,7 @@ func _ready() -> void:
 		l.omni_range = 20.0
 		l.light_energy = 0.0
 		l.shadow_enabled = false
+		l.light_volumetric_fog_energy = 4.0
 		add_child(l)
 		_lights.append(l)
 

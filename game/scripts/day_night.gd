@@ -37,3 +37,6 @@ func _process(delta: float) -> void:
 		_env.ambient_light_energy = 0.45 + 0.6 * daylight
 		var amb := Color(0.17, 0.19, 0.30).lerp(Color(0.92, 0.90, 0.86), daylight)
 		_env.ambient_light_color = amb.lerp(Color(1.0, 0.72, 0.5), dusk * 0.6)
+		var vnight := 1.0 - daylight
+		_env.volumetric_fog_enabled = vnight > 0.25
+		_env.volumetric_fog_density = 0.012 * smoothstep(0.25, 0.7, vnight)

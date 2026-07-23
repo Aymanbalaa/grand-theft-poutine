@@ -37,6 +37,11 @@ fog_light_color = Color(0.75, 0.82, 0.9, 1)
 fog_density = 0.00003
 fog_aerial_perspective = 0.6
 fog_sky_affect = 0.1
+volumetric_fog_enabled = false
+volumetric_fog_density = 0.0
+volumetric_fog_albedo = Color(0.82, 0.86, 1, 1)
+volumetric_fog_length = 200.0
+volumetric_fog_ambient_inject = 0.0
 
 [sub_resource type="StandardMaterial3D" id="ground_mat"]
 albedo_color = Color(0.62, 0.63, 0.6, 1)
