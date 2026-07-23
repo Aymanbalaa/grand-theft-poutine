@@ -77,7 +77,7 @@ void fragment() {
 
 	// residential/default ground-floor doors: one cell in ~5, non-storefront
 	float door_pick = fract(sin(cell.x * 91.7 + seed * 47.0) * 43758.5453);
-	float is_door = (floor_idx == 0.0 && storefront < 0.5 && (cat == 0 || cat == 5))
+	float is_door = (floor_idx == 0.0 && (cat == 0 || cat == 5))
 			? step(0.8, door_pick) : 0.0;
 	float door_mask = is_door * step(0.30, f.x) * step(f.x, 0.70)
 			* step(f.y, 2.2 / rh) * vertical;
