@@ -30,7 +30,7 @@ void fragment() {
 
 	// keep the baked large-scale tint so elevation/district variation survives
 	col *= mix(vec3(1.0), painted * 2.6, 0.35);
-	col = min(col * 1.5, vec3(1.0));
+	col = min(col * 1.6, vec3(1.0));
 	ALBEDO = mix(col, painted, wet);
 	ROUGHNESS = 1.0;
 }

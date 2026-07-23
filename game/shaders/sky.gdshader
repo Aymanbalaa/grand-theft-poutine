@@ -2,7 +2,7 @@ shader_type sky;
 
 uniform float cloud_coverage : hint_range(0.0, 1.0) = 0.55;
 uniform float cloud_speed = 0.005;
-uniform float cloud_scale = 0.18;
+uniform float cloud_scale = 0.8;
 
 float hash12(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -36,8 +36,10 @@ void sky() {
 		sun = LIGHT0_DIRECTION;
 	}
 	float sun_h = sun.y;
-	float daylight = clamp(sun_h * 2.6, 0.0, 1.0);
-	float twilight = clamp(1.0 - abs(sun_h) * 3.5, 0.0, 1.0);
+	// sun path never crosses the horizon (elevation pins at ~6 deg night, ~23 deg at the
+	// harness dusk time), so day/twilight bands are centered on this project's sun_h range
+	float daylight = clamp((sun_h - 0.12) * 1.9, 0.0, 1.0);
+	float twilight = clamp(1.0 - abs(sun_h - 0.35) * 4.5, 0.0, 1.0);
 	vec2 flat_dir = normalize(dir.xz + vec2(1e-5));
 	vec2 flat_sun = normalize(sun.xz + vec2(1e-5));
 	float toward_sun = dot(flat_dir, flat_sun) * 0.5 + 0.5;
