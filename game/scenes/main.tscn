@@ -29,6 +29,9 @@ ssao_enabled = true
 glow_enabled = true
 glow_intensity = 0.4
 glow_bloom = 0.1
+adjustment_enabled = true
+adjustment_contrast = 1.05
+adjustment_saturation = 1.08
 fog_enabled = true
 fog_light_color = Color(0.75, 0.82, 0.9, 1)
 fog_density = 0.00003
@@ -56,6 +59,8 @@ mesh = SubResource("ground_mesh")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, -0.353, 0.353, 0, 0.707, 0.707, -0.5, -0.612, 0.612, 0, 0, 0)
 shadow_enabled = true
+directional_shadow_max_distance = 500.0
+directional_shadow_blend_splits = true
 script = ExtResource("3")
 
 [node name="TileLoader" type="Node3D" parent="."]
