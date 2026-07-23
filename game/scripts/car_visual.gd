@@ -76,6 +76,7 @@ func _ready() -> void:
 				if inst3d != null:
 					inst3d.scale = Vector3.ONE * float(MODEL_SCALE[idx])
 					inst3d.rotation.y = PI
+				_polish_materials(inst)
 				_model_mode = true
 				return
 	var body := _flat(PALETTE[color_index % PALETTE.size()])
@@ -91,6 +92,25 @@ func _ready() -> void:
 	var tail := _flat(Color(0.85, 0.1, 0.08), 0.8)
 	_box(Vector3(0.28, 0.12, 0.06), Vector3(-0.6, 0.72, 2.02), tail, self)
 	_box(Vector3(0.28, 0.12, 0.06), Vector3(0.6, 0.72, 2.02), tail, self)
+
+static func _polish_materials(node: Node) -> void:
+	var mi := node as MeshInstance3D
+	if mi != null and mi.mesh != null:
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.get_active_material(s) as BaseMaterial3D
+			if mat == null:
+				continue
+			if mat.albedo_texture == null:
+				var tex := load("res://assets/models/cars/Textures/colormap.png") as Texture2D
+				if tex != null:
+					mat.albedo_texture = tex
+			mat.clearcoat_enabled = true
+			mat.clearcoat = 0.6
+			mat.clearcoat_roughness = 0.2
+			mat.metallic = 0.25
+			mat.roughness = 0.35
+	for child in node.get_children():
+		_polish_materials(child)
 
 func _process(delta: float) -> void:
 	if _model_mode:
