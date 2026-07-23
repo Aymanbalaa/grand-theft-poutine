@@ -18,6 +18,10 @@ float hash21(vec2 p) {
 	return fract(p.x * p.y);
 }
 
+float bhash(vec3 c) {
+	return fract(sin(dot(floor(c * 255.0 + 0.5), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+}
+
 void vertex() {
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	wnormal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
@@ -39,6 +43,7 @@ void fragment() {
 	int acode = int(round(vcol.a * 255.0));
 	int cat = acode / 40;
 	float base_y = float(acode % 40) * 2.0;
+	float seed = bhash(vcol.rgb);   // stable per building: vertex color is constant per building
 	float roofness = smoothstep(0.45, 0.6, wnormal.y);   // caps + gables; walls ~0
 
 	// sample everything unconditionally (texture() inside branches breaks mips)
@@ -58,10 +63,11 @@ void fragment() {
 	float vertical = 1.0 - smoothstep(0.25, 0.4, abs(wnormal.y));
 	float u = abs(wnormal.x) > abs(wnormal.z) ? wpos.z : wpos.x;
 	float v = wpos.y - base_y;
-	float cw = (cat == 1) ? 2.4 : 3.6;                   // commercial mullions are finer
-	vec2 cell = vec2(floor(u / cw), floor(v / 3.2));
-	vec2 f = vec2(fract(u / cw), fract(v / 3.2));
-	float floor_idx = floor(v / 3.2);
+	float cw = ((cat == 1) ? 2.4 : 3.6) * mix(0.85, 1.2, fract(seed * 7.31));
+	float rh = 3.2 * mix(0.92, 1.12, fract(seed * 3.77));
+	vec2 cell = vec2(floor(u / cw), floor(v / rh));
+	vec2 f = vec2(fract(u / cw), fract(v / rh));
+	float floor_idx = floor(v / rh);
 
 	vec2 lo = (cat == 1) ? vec2(0.08, 0.12) : vec2(0.26, 0.32);
 	vec2 hi = (cat == 1) ? vec2(0.92, 0.90) : vec2(0.74, 0.84);
@@ -89,13 +95,15 @@ void fragment() {
 	col = mix(col, rooft * tint * 2.4, roofness);
 
 	ALBEDO = col;
-	ROUGHNESS = mix(mix(0.92, 0.18, inner), 0.95, roofness);
-	METALLIC = inner * 0.2 * (1.0 - roofness);
+	ROUGHNESS = mix(mix(0.92, 0.14, inner), 0.95, roofness);
+	METALLIC = inner * 0.55 * (1.0 - roofness);
 
-	float lit = step(0.62, hash21(cell));
+	float lit = step(mix(0.5, 0.74, fract(seed * 5.13)), hash21(cell + vec2(seed * 31.0, 0.0)));
 	float night = smoothstep(0.45, 0.9, night_amount);
 	float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 	float glow = max(lit, storefront * 0.55);
-	EMISSION = vec3(1.0, 0.72, 0.35)
+	vec3 glow_col = mix(vec3(1.0, 0.72, 0.35), vec3(0.78, 0.86, 1.0),
+			step(0.85, fract(seed * 9.73)) * storefront);
+	EMISSION = glow_col
 			* (inner * glow * night * 1.6 * (0.2 + 0.8 * facing) * (1.0 - roofness));
 }
