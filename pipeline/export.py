@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 from pipeline import config
 from pipeline.cars import car_spawns
+from pipeline.decals import manhole_spots
 from pipeline.geo import latlon_to_xz
 from pipeline.landmarks import export_landmarks
 from pipeline.minimap import render_minimap
@@ -42,6 +43,7 @@ def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
         "districts": district_polys(),
         "landmarks": landmark_entries,
         "car_spawns": car_spawns(city.roads, hm),
+        "manholes": [[s["x"], s["y"], s["z"]] for s in manhole_spots(city.roads, hm=hm)],
         "lamps": [[round(x, 1), round((hm.sample(x, z) if hm is not None else 0.0), 1), round(z, 1)]
                   for x, z in city.lamps],
         "trees": [[round(x, 1), round((hm.sample(x, z) if hm is not None else 0.0), 1), round(z, 1)]

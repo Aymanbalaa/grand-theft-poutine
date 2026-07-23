@@ -14,9 +14,25 @@ def _fake_zip(asset_id: str) -> bytes:
             z.writestr(f"{asset_id}_1K-JPG_{m}.jpg", b"\xff\xd8\xff fake " + m.encode())
     return buf.getvalue()
 
+def _fake_png_zip(asset_id: str) -> bytes:
+    from PIL import Image
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        color = Image.new("RGB", (4, 4), (120, 120, 128))
+        cbuf = io.BytesIO()
+        color.save(cbuf, format="PNG")
+        z.writestr(f"{asset_id}_1K-PNG_Color.png", cbuf.getvalue())
+        opacity = Image.new("L", (4, 4), 200)
+        obuf = io.BytesIO()
+        opacity.save(obuf, format="PNG")
+        z.writestr(f"{asset_id}_1K-PNG_Opacity.png", obuf.getvalue())
+    return buf.getvalue()
+
 def _fetch_ok(url: str) -> bytes:
     for slot, spec in config.TEXTURE_SLOTS.items():
         if spec["preferred"] in url:
+            if spec.get("fmt") == "PNG":
+                return _fake_png_zip(spec["preferred"])
             return _fake_zip(spec["preferred"])
     raise AssertionError("unexpected url " + url)
 
@@ -126,6 +142,15 @@ def test_grass_and_rock_slots_extract_color_maps(tmp_path):
     # Color-only slots: no normal/roughness extracted
     assert not (out / "grass_nrm.jpg").exists()
     assert not (out / "rock_rgh.jpg").exists()
+
+def test_png_slot_with_opacity_composites_rgba(tmp_path):
+    # the decal slot requests PNG format with Color+Opacity and compose_alpha;
+    # ensure_textures must emit {slot}_alb.png with an alpha channel
+    out = tmp_path / "out"
+    ensure_textures(cache_dir=tmp_path / "cache", out_dir=out, fetch=_fetch_ok)
+    from PIL import Image
+    img = Image.open(out / "manhole_alb.png")
+    assert img.mode == "RGBA"
 
 def test_slot_res_selects_download_url(tmp_path):
     urls = []

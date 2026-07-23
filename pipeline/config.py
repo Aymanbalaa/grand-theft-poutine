@@ -95,6 +95,11 @@ CAR_SPAWN_SPACING = 90.0      # arclength between candidates along a road
 CAR_SPAWN_MIN_GAP = 25.0      # min distance between any two accepted spawns
 MAX_CAR_SPAWNS = 120
 
+# --- M9b Task 2: manhole decal positions ---
+MANHOLE_SPACING = 57.0    # m along-road; off-sync with dash period
+MANHOLE_RADIUS = 900.0    # only near downtown, like car spawns
+MAX_MANHOLES = 600
+
 # --- M6a Task 2: category-coded wall vertex alpha (facade shader selection) ---
 WALL_CATEGORY_ALPHA = {"residential": 0, "commercial": 1, "church": 2,
                        "industrial": 3, "civic": 4, "default": 5}
@@ -114,8 +119,10 @@ TEXTURE_SLOTS = {
     "ground":   {"preferred": "Ground037",        "query": "dirt ground",      "maps": ["Color", "NormalGL", "Roughness"]},
     "grass":    {"preferred": "Grass001",         "query": "grass lawn",       "maps": ["Color"]},
     "rock":     {"preferred": "Rock030",          "query": "rock cliff",       "maps": ["Color"]},
+    "manhole":  {"preferred": "ManholeCover001",  "query": "manhole cover",    "maps": ["Color", "Opacity"],
+                 "fmt": "PNG", "compose_alpha": True},
 }
-AMBIENTCG_DL = "https://ambientcg.com/get?file={id}_{res}-JPG.zip"
+AMBIENTCG_DL = "https://ambientcg.com/get?file={id}_{res}-{fmt}.zip"
 AMBIENTCG_API = "https://ambientcg.com/api/v2/full_json?type=Material&include=downloadData&q={q}"
 
 # --- M6a sidewalks & road markings ---
