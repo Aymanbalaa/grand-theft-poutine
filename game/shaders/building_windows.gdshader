@@ -75,7 +75,7 @@ void fragment() {
 	lo = mix(lo, vec2(0.06, 0.05), storefront);
 	hi = mix(hi, vec2(0.94, 0.72), storefront);
 
-	// residential/default ground-floor doors: one cell in ~5, non-storefront
+	// residential/default ground-floor doors: ~1 cell in 5 punches through the band
 	float door_pick = fract(sin(cell.x * 91.7 + seed * 47.0) * 43758.5453);
 	float is_door = (floor_idx == 0.0 && (cat == 0 || cat == 5))
 			? step(0.8, door_pick) : 0.0;
