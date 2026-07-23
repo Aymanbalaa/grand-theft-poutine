@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/fly_camera.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/tile_loader.gd" id="2"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://scripts/credits.gd" id="10"]
 [ext_resource type="Shader" path="res://shaders/sky.gdshader" id="11"]
 [ext_resource type="Script" path="res://scripts/props_multimesh.gd" id="12"]
+[ext_resource type="Script" path="res://scripts/decal_pool.gd" id="13"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("11")
@@ -78,6 +79,9 @@ script = ExtResource("9")
 
 [node name="Props" type="Node3D" parent="."]
 script = ExtResource("12")
+
+[node name="DecalPool" type="Node3D" parent="."]
+script = ExtResource("13")
 
 [node name="Ambient" type="AudioStreamPlayer" parent="."]
 volume_db = -16.0

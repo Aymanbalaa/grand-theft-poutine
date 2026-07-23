@@ -102,6 +102,13 @@ func _init() -> void:
 	print("PROPS OK: %d trees, %d lamps, %d benches, %d hydrants" % [
 			props.call("instance_count", "trees"), props.call("instance_count", "lamps"),
 			props.call("instance_count", "benches"), props.call("instance_count", "hydrants")])
+	var decals := root.get_node_or_null("DecalPool")
+	if decals == null or decals.call("manhole_count") < 100 or decals.get_child_count() != 32:
+		var mc: int = -1 if decals == null else decals.call("manhole_count")
+		push_error("FAIL: decal pool missing or manholes not loaded (manholes=%d)" % mc)
+		quit(1)
+		return
+	print("DECALS OK: %d manholes" % decals.call("manhole_count"))
 	if root.get_node_or_null("Credits") == null or not InputMap.has_action("credits"):
 		push_error("FAIL: credits overlay or action missing")
 		quit(1)
