@@ -3,16 +3,25 @@ extends Node3D
 ## GPU instancing carries all instances resident; Godot culls by MultiMesh AABB.
 
 const SPECS := [
+	# scales compensate small native model sizes (trees ~1.2-1.7 m, lamp 0.6 m, bench 0.47 m)
 	{"key": "trees", "models": ["res://assets/models/props/tree0.glb",
 			"res://assets/models/props/tree1.glb", "res://assets/models/props/tree2.glb"],
-		"scale_min": 0.85, "scale_max": 1.3},
+		"scale_min": 3.0, "scale_max": 4.6},
 	{"key": "lamps", "models": ["res://assets/models/props/lamp_post.glb"],
-		"scale_min": 1.0, "scale_max": 1.0},
+		"scale_min": 7.5, "scale_max": 7.5},
 	{"key": "benches", "models": ["res://assets/models/props/bench.glb"],
-		"scale_min": 1.0, "scale_max": 1.0},
+		"scale_min": 2.6, "scale_max": 2.6},
 	{"key": "hydrants", "models": ["res://assets/models/props/hydrant.glb"],
 		"scale_min": 1.0, "scale_max": 1.0},
 ]
+
+# the Poly-Pizza-converted GLBs carry KHR_materials_unlit + metallic=1 + pastel
+# base colors (mint-teal foliage); replace known materials with shaded naturals
+const MAT_COLORS := {
+	"leafsGreen": Color(0.16, 0.40, 0.15),
+	"woodBark": Color(0.35, 0.24, 0.15),
+	"wood": Color(0.45, 0.30, 0.18),
+}
 
 var _counts := {}
 
@@ -90,7 +99,14 @@ static func _find_mesh(node: Node) -> Mesh:
 		# bake the importer's surface materials into the mesh so MultiMesh keeps them
 		for s in m.get_surface_count():
 			var mat := mi.get_active_material(s)
-			if mat != null:
+			if mat == null:
+				continue
+			if MAT_COLORS.has(mat.resource_name):
+				var fixed := StandardMaterial3D.new()
+				fixed.albedo_color = MAT_COLORS[mat.resource_name]
+				fixed.roughness = 1.0
+				m.surface_set_material(s, fixed)
+			else:
 				m.surface_set_material(s, mat)
 		return m
 	for child in node.get_children():
