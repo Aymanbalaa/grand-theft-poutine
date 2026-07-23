@@ -181,11 +181,15 @@ def parse_osm(xml_path: str | Path) -> CityData:
     city.roads.sort(key=lambda r: r.osm_id)
     city.buildings.sort(key=lambda b: b.osm_id)
     city.areas.sort(key=lambda a: a.osm_id)
-    city.trees = [latlon_to_xz(*tree_ids[i]) for i in sorted(tree_ids)]
-    city.lamps = [latlon_to_xz(*lamp_ids[i]) for i in sorted(lamp_ids)]
-    city.benches = [latlon_to_xz(*bench_ids[i]) for i in sorted(bench_ids)]
-    city.hydrants = [latlon_to_xz(*hydrant_ids[i]) for i in sorted(hydrant_ids)]
     s, w, n, e = config.BBOX
+    def _in_bbox(latlon: tuple) -> bool:
+        return s <= latlon[0] <= n and w <= latlon[1] <= e
+    # bbox-filter point props: baked geometry used to clip them to tiles implicitly,
+    # but metadata-driven props render wherever listed (M8c: trees floated off-world)
+    city.trees = [latlon_to_xz(*tree_ids[i]) for i in sorted(tree_ids) if _in_bbox(tree_ids[i])]
+    city.lamps = [latlon_to_xz(*lamp_ids[i]) for i in sorted(lamp_ids)]
+    city.benches = [latlon_to_xz(*bench_ids[i]) for i in sorted(bench_ids) if _in_bbox(bench_ids[i])]
+    city.hydrants = [latlon_to_xz(*hydrant_ids[i]) for i in sorted(hydrant_ids) if _in_bbox(hydrant_ids[i])]
     city.signals = [latlon_to_xz(*signal_ids[i]) for i in sorted(signal_ids)
-                    if s <= signal_ids[i][0] <= n and w <= signal_ids[i][1] <= e]
+                    if _in_bbox(signal_ids[i])]
     return city

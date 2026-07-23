@@ -42,6 +42,12 @@ func instance_count(key: String) -> int:
 static func _hash01(x: float, z: float, salt: float) -> float:
 	return fposmod(sin(x * 12.9898 + z * 78.233 + salt) * 43758.5453, 1.0)
 
+# props chunked into cells with distance culling so they disappear with the
+# tile streaming radius (a single global MultiMesh drew trees floating over
+# hidden far tiles); cell size matches the tile grid, cull just past view_distance
+const CHUNK := 256.0
+const CULL_DIST := 1000.0
+
 func _build(spec: Dictionary, positions: Array) -> void:
 	if positions.is_empty():
 		return
@@ -52,33 +58,38 @@ func _build(spec: Dictionary, positions: Array) -> void:
 			meshes.append(m)
 	if meshes.is_empty():
 		return
-	# bucket positions by model variant (hash of position)
-	var buckets: Array = []
-	for i in meshes.size():
-		buckets.append(PackedVector3Array())
+	# bucket positions by (model variant via position hash, chunk cell)
+	var buckets := {}
 	for p in positions:
 		var v := Vector3(p[0], p[1], p[2])
 		var mi := int(_hash01(v.x, v.z, 7.7) * meshes.size()) % meshes.size()
-		buckets[mi].append(v)
+		var cell := Vector2i(floori(v.x / CHUNK), floori(v.z / CHUNK))
+		var key := [mi, cell]
+		if not buckets.has(key):
+			buckets[key] = PackedVector3Array()
+		buckets[key].append(v)
 	var total := 0
-	for i in meshes.size():
-		if buckets[i].is_empty():
-			continue
+	for key in buckets:
+		var pts: PackedVector3Array = buckets[key]
+		var cell: Vector2i = key[1]
+		var center := Vector3((cell.x + 0.5) * CHUNK, 0.0, (cell.y + 0.5) * CHUNK)
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.mesh = meshes[i]
-		mm.instance_count = buckets[i].size()
-		for j in buckets[i].size():
-			var v: Vector3 = buckets[i][j]
+		mm.mesh = meshes[key[0]]
+		mm.instance_count = pts.size()
+		for j in pts.size():
+			var v: Vector3 = pts[j]
 			var yaw := _hash01(v.x, v.z, 3.1) * TAU
 			var s: float = lerp(spec["scale_min"], spec["scale_max"], _hash01(v.x, v.z, 5.3))
-			var xf := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), v)
+			var xf := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), v - center)
 			mm.set_instance_transform(j, xf)
 		var inst := MultiMeshInstance3D.new()
 		inst.multimesh = mm
-		inst.name = "%s_%d" % [spec["key"], i]
+		inst.position = center
+		inst.visibility_range_end = CULL_DIST
+		inst.name = "%s_%d_%d_%d" % [spec["key"], key[0], cell.x, cell.y]
 		add_child(inst)
-		total += buckets[i].size()
+		total += pts.size()
 	_counts[spec["key"]] = total
 
 static func _first_mesh(path: String) -> Mesh:
