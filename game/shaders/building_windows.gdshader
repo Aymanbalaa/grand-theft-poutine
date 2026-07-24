@@ -22,6 +22,33 @@ float bhash(vec3 c) {
 	return fract(sin(dot(floor(c * 255.0 + 0.5), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
 }
 
+// interior mapping: g = fragment pos within aperture in [0,1]^2 on the glass plane;
+// rl = view ray in the window-local basis (x along-wall, y up, z into the room).
+// analytic nearest-plane hit against a unit box (walls x=0/1, floor/ceil y=0/1,
+// back wall z=depth); shaded procedurally per room. No loop, no texture.
+vec3 interior_room(vec2 g, vec3 rl, float room_seed) {
+	float depth = 0.85;                       // room depth in aperture-heights
+	float tz = (rl.z > 1e-4) ? depth / rl.z : 1e9;
+	float tx = (rl.x > 1e-4) ? (1.0 - g.x) / rl.x : (rl.x < -1e-4 ? -g.x / rl.x : 1e9);
+	float ty = (rl.y > 1e-4) ? (1.0 - g.y) / rl.y : (rl.y < -1e-4 ? -g.y / rl.y : 1e9);
+	float t = min(tz, min(tx, ty));
+	vec3 hit = vec3(g, 0.0) + rl * t;
+	// per-room base palette (warm office / cool office / dim), hashed
+	vec3 warm = vec3(0.55, 0.47, 0.36);
+	vec3 cool = vec3(0.42, 0.48, 0.55);
+	vec3 dim  = vec3(0.14, 0.15, 0.17);
+	float pick = fract(room_seed * 3.11);
+	vec3 room = (pick < 0.4) ? warm : (pick < 0.75 ? cool : dim);
+	// depth shade: back wall darkest, side walls mid, ceiling brightest (fake ceiling light)
+	float shade = 1.0 - 0.55 * (hit.z / depth);
+	shade *= (t == ty && rl.y < 0.0) ? 1.25 : 1.0;   // looking up -> ceiling, brighter
+	shade *= (t == ty && rl.y > 0.0) ? 0.7  : 1.0;    // floor, darker
+	// a back-wall furniture band (single horizontal stripe) for readable depth
+	float band = (t == tz) ? smoothstep(0.28, 0.30, hit.y) * (1.0 - smoothstep(0.5, 0.52, hit.y)) : 0.0;
+	room = mix(room, room * 0.55, band * 0.7);
+	return room * clamp(shade, 0.15, 1.35);
+}
+
 void vertex() {
 	wpos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	wnormal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
@@ -106,6 +133,23 @@ void fragment() {
 	col = mix(col, base * 0.5, frame);
 	col = mix(col, glass, inner);
 	col = mix(col, base * 1.3 + vec3(0.03), sill);
+
+	// --- fake interior depth: commercial (cat 1) floors >= 1, inside the glass ---
+	if (cat == 1 && floor_idx >= 1.0) {
+		vec3 nrm = normalize(wnormal);
+		vec3 tang = normalize(cross(vec3(0.0, 1.0, 0.0), nrm));  // along-wall horizontal
+		vec3 rd = normalize(wpos - CAMERA_POSITION_WORLD);       // camera -> fragment
+		// window-local ray: x along wall, y up, z into the room (-nrm)
+		vec3 rl = normalize(vec3(dot(rd, tang), rd.y, dot(rd, -nrm)));
+		// aperture-normalized fragment coords in [0,1]
+		vec2 g = clamp(vec2((f.x - lo.x) / max(hi.x - lo.x, 1e-3),
+				(f.y - lo.y) / max(hi.y - lo.y, 1e-3)), 0.0, 1.0);
+		float room_seed = fract(sin(dot(cell, vec2(19.19, 71.7)) + seed * 23.0) * 43758.5453);
+		vec3 room = interior_room(g, rl, room_seed);
+		// only where we're actually seeing into the room (rl.z>0) and inside the glass
+		col = mix(col, room, inner * step(1e-3, rl.z));
+	}
+
 	col = mix(col, base * 1.15, clamp(door_rim, 0.0, 1.0));
 	col = mix(col, vec3(0.13, 0.09, 0.06), door_mask);
 	col = mix(col, rooft * tint * 2.4, roofness);
