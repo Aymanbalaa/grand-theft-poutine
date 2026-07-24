@@ -150,3 +150,16 @@ STOPBAR_LEN = 0.4        # stop line along-road length (m)
 STOPBAR_INSET = 0.4      # stop line offset inside the clear interval (m)
 CROSSWALK_MIN_INTERVAL = 8.0   # skip crossings on shorter clear intervals
 PATH_CLASSES = ("pedestrian", "footway", "cycleway", "living_street")
+
+# --- M9c2 Task 3: storefront awnings (commercial buildings only) ---
+AWNING_TOP_Y = 3.3        # wall attach height (m above base) — just above the storefront band
+AWNING_DROP = 0.6         # how far the outer edge hangs below the attach height (m)
+AWNING_DEPTH = 0.9        # outward protrusion from the wall (m)
+AWNING_MIN_EDGE = 3.0     # skip footprint edges shorter than this (m)
+AWNING_INSET = 0.4        # pull each awning in from the edge ends (m)
+AWNING_COLORS = [         # deterministic per-building pick (Montréal storefront reds/greens/blues)
+                          # sRGB 0-255 ints (matches _paint's uint8 contract, like every
+                          # other color table in this file)
+    (158, 41, 36), (38, 89, 56), (41, 71, 122),
+    (140, 107, 36), (77, 77, 84),
+]

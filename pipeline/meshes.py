@@ -4,6 +4,7 @@ import numpy as np
 import trimesh
 import trimesh.transformations as tf
 from shapely.geometry import Polygon, LineString
+from shapely.geometry.polygon import orient
 from trimesh.creation import extrude_polygon, triangulate_polygon
 from pipeline.osm_parse import Building, Road, Area
 from pipeline.terrain import Heightmap
@@ -112,6 +113,56 @@ def building_mesh(b: Building, hm: Heightmap | None = None) -> trimesh.Trimesh |
     walls = _paint(mesh, building_color(b), _jitter3(b.osm_id),
                    alpha=config.WALL_CATEGORY_ALPHA.get(cat, 5) * 40 + q)
     return trimesh.util.concatenate([walls, roof])
+
+def _jitter_pick(osm_id: int) -> float:
+    """Deterministic pseudo-random value in [0, 1000) from an osm_id, for
+    picking among a small fixed palette (e.g. awning colors)."""
+    return abs(math.sin(float(osm_id) * 12.9898) * 43758.5453) % 1000.0
+
+def awning_mesh(b: Building, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
+    """Sloped storefront awning strips along commercial-building footprint edges.
+    Awnings are their own tile bucket (not part of `buildings`) because the
+    facade shader (building_windows.gdshader) projects a window grid onto the
+    `buildings` bucket's walls; riding that bucket would paint window grids
+    onto the awning geometry too."""
+    cat = config.BUILDING_CATEGORIES.get(b.btype, "default")
+    if cat != "commercial":
+        return None
+    poly = Polygon(b.footprint)
+    if not poly.is_valid:
+        poly = poly.buffer(0)
+    if poly.is_empty or poly.geom_type != "Polygon" or poly.area < 1.0:
+        return None
+    poly = orient(poly, sign=1.0)            # force CCW exterior -> outward normal is the right perpendicular
+    base_y = hm.sample(poly.centroid.x, poly.centroid.y) if hm is not None else 0.0
+    coords = list(poly.exterior.coords)[:-1]
+    verts, faces = [], []
+    top = base_y + config.AWNING_TOP_Y
+    outy = top - config.AWNING_DROP
+    color = config.AWNING_COLORS[int(_jitter_pick(b.osm_id)) % len(config.AWNING_COLORS)]
+    for (x1, z1), (x2, z2) in zip(coords, coords[1:] + coords[:1]):
+        dx, dz = x2 - x1, z2 - z1
+        L = math.hypot(dx, dz)
+        if L < config.AWNING_MIN_EDGE:
+            continue
+        ux, uz = dx / L, dz / L
+        ox, oz = uz, -ux                      # outward (right) normal for a CCW ring
+        # pull ends in by AWNING_INSET
+        ax1, az1 = x1 + ux * config.AWNING_INSET, z1 + uz * config.AWNING_INSET
+        ax2, az2 = x2 - ux * config.AWNING_INSET, z2 - uz * config.AWNING_INSET
+        i = len(verts)
+        # wall-top edge (a1,a2) at `top`; outer edge (b1,b2) at `outy`, pushed out by depth
+        verts += [
+            [ax1, top, az1], [ax2, top, az2],
+            [ax2 + ox * config.AWNING_DEPTH, outy, az2 + oz * config.AWNING_DEPTH],
+            [ax1 + ox * config.AWNING_DEPTH, outy, az1 + oz * config.AWNING_DEPTH],
+        ]
+        faces += [[i, i + 1, i + 2], [i, i + 2, i + 3]]      # sloped top, wound so the normal faces up/out
+    if not faces:
+        return None
+    m = trimesh.Trimesh(vertices=np.array(verts, dtype=float),
+                        faces=np.array(faces), process=False)
+    return _paint(m, color, 1.0)             # flat vertex color, no alpha packing needed for the awning bucket
 
 def road_mesh(r: Road, hm: Heightmap | None = None) -> trimesh.Trimesh | None:
     if len(r.points) < 2 or r.width <= 0:

@@ -318,3 +318,39 @@ def test_sidewalk_curb_distinct_color():
     cols = {tuple(c[:3]) for c in m.visual.vertex_colors}
     assert tuple(config.CURB_COLOR) in cols
     assert tuple(config.SIDEWALK_COLOR) in cols
+
+AWNING_RECT = [(0.0, 0.0), (12.0, 0.0), (12.0, 8.0), (0.0, 8.0)]
+
+def test_awning_on_commercial_building():
+    from pipeline.meshes import awning_mesh
+    from pipeline import config
+    b = Building(100, AWNING_RECT, 12.0, "retail")
+    m = awning_mesh(b, hm=None)
+    assert m is not None
+    # rectangle: all 4 edges (12,8,12,8) >= AWNING_MIN_EDGE -> one quad per edge
+    assert len(m.faces) == 8
+    # awnings sit at storefront height, well below the roof
+    assert abs(m.vertices[:, 1].max() - config.AWNING_TOP_Y) < 1e-6
+    assert abs(m.vertices[:, 1].min() - (config.AWNING_TOP_Y - config.AWNING_DROP)) < 1e-6
+    assert m.vertices[:, 1].min() > 0.0
+
+def test_no_awning_on_residential_building():
+    from pipeline.meshes import awning_mesh
+    b = Building(101, AWNING_RECT, 12.0, "house")
+    assert awning_mesh(b, hm=None) is None
+
+def test_awning_faces_up_and_outward():
+    # winding risk: a flipped quad would face down/inward and render as
+    # backface-culled black strips in-game (Task 5 smoke gate concern)
+    from pipeline.meshes import awning_mesh
+    b = Building(102, AWNING_RECT, 12.0, "retail")
+    m = awning_mesh(b, hm=None)
+    n = m.face_normals
+    assert np.all(n[:, 1] > 0.5)          # every awning face tilts upward
+    centroid_xz = np.array([6.0, 4.0])    # AWNING_RECT centroid
+    tri_xz = m.triangles_center[:, [0, 2]]
+    outward = tri_xz - centroid_xz
+    outward /= np.linalg.norm(outward, axis=1, keepdims=True)
+    horiz_n = n[:, [0, 2]]
+    horiz_n = horiz_n / np.linalg.norm(horiz_n, axis=1, keepdims=True)
+    assert np.all((outward * horiz_n).sum(axis=1) > 0.5)   # normal points away from the building

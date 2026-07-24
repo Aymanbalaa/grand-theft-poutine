@@ -16,6 +16,7 @@ var _sidewalk_mat := _make_surface_material("paving", 0.35, 2.1, 0.2)
 var _marks_mat := _make_marks_material()
 var _terrain_mat := _make_terrain_material()
 var _path_mat := _make_surface_material("ground", 0.35, 1.15, 0.5)
+var _awning_mat := _make_awning_material()
 
 static func _make_city_material() -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -61,6 +62,13 @@ static func _make_surface_material(slot: String, uv_scale: float, brighten: floa
 	m.set_shader_parameter("wear_strength", wear)
 	return m
 
+static func _make_awning_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.vertex_color_is_srgb = true   # AWNING_COLORS are authored 0-255 sRGB, like _city_mat/_marks_mat
+	m.roughness = 0.85
+	return m
+
 static func _make_terrain_material() -> ShaderMaterial:
 	var m := _make_shader_material("res://shaders/terrain.gdshader")
 	if m == null:
@@ -82,6 +90,8 @@ func _apply_city_material(node: Node) -> void:
 			inst.material_override = _water_mat
 		elif n.begins_with("roadmarks"):
 			inst.material_override = _marks_mat
+		elif n.begins_with("awnings"):
+			inst.material_override = _awning_mat
 		elif _road_mat != null and n.begins_with("roads"):
 			inst.material_override = _road_mat
 		elif _sidewalk_mat != null and n.begins_with("sidewalks"):
@@ -153,7 +163,7 @@ func _build_collision(tile: Node3D) -> StaticBody3D:
 	for mi in tile.find_children("*", "MeshInstance3D", true, false):
 		var inst := mi as MeshInstance3D
 		var n := inst.name.to_lower()
-		if n.begins_with("water") or n.begins_with("props") or n.begins_with("roadmarks"):
+		if n.begins_with("water") or n.begins_with("props") or n.begins_with("roadmarks") or n.begins_with("awnings"):
 			continue
 		if inst.mesh == null:
 			continue
