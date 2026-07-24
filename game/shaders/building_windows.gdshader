@@ -137,7 +137,8 @@ void fragment() {
 	// --- fake interior depth: commercial (cat 1) floors >= 1, inside the glass ---
 	if (cat == 1 && floor_idx >= 1.0) {
 		vec3 nrm = normalize(wnormal);
-		vec3 tang = normalize(cross(vec3(0.0, 1.0, 0.0), nrm));  // along-wall horizontal
+		vec3 up_ref = (abs(nrm.y) > 0.999) ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+		vec3 tang = normalize(cross(up_ref, nrm));  // along-wall horizontal
 		vec3 rd = normalize(wpos - CAMERA_POSITION_WORLD);       // camera -> fragment
 		// window-local ray: x along wall, y up, z into the room (-nrm)
 		vec3 rl = normalize(vec3(dot(rd, tang), rd.y, dot(rd, -nrm)));
