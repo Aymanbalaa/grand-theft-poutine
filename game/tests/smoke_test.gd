@@ -122,6 +122,16 @@ func _init() -> void:
 		quit(1)
 		return
 	print("GRASS OK: %d green cells, %d blades" % [grass.call("green_cell_count"), grass.call("blade_count")])
+	var tl := root.get_node_or_null("TileLoader")
+	var awning_meshes := 0
+	if tl != null:
+		for _mi in tl.find_children("awnings*", "MeshInstance3D", true, false):
+			awning_meshes += 1
+	if awning_meshes < 1:
+		push_error("FAIL: no awning meshes found (count=%d)" % awning_meshes)
+		quit(1)
+		return
+	print("AWNINGS OK: %d awning meshes" % awning_meshes)
 	if root.get_node_or_null("Credits") == null or not InputMap.has_action("credits"):
 		push_error("FAIL: credits overlay or action missing")
 		quit(1)
