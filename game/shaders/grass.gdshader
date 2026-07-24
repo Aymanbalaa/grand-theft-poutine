@@ -16,7 +16,7 @@ void vertex() {
 }
 
 void fragment() {
-	float top = clamp((UV.y < 0.5) ? 1.0 : 0.0, 0.0, 1.0); // UV.y small = top of card in QuadMesh
+	float top = clamp(1.0 - UV.y, 0.0, 1.0); // UV.y small = top of card in QuadMesh -> smooth root->tip gradient
 	// blade gradient: darker at root, brighter at tip
 	vec3 root = vec3(0.11, 0.22, 0.09);
 	vec3 tip  = vec3(0.22, 0.42, 0.16);

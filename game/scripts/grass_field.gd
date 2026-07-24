@@ -127,6 +127,8 @@ func _process(delta: float) -> void:
 			if _hash01(gx, gz, 9.1) > 0.6:
 				continue
 			var y := _green_y(cp, jx, jz)
+			if not is_finite(y):
+				continue   # no ground hit (collision not ready / off-terrain) -> skip, don't float at y=0
 			var yaw := _hash01(gx, gz, 2.2) * TAU
 			var s: float = lerp(0.7, 1.3, _hash01(gx, gz, 6.6))
 			xforms.append(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), Vector3(jx, y, jz)))
@@ -145,4 +147,4 @@ func _green_y(cp: Vector3, x: float, z: float) -> float:
 	var to := Vector3(x, cp.y - 200.0, z)
 	var q := PhysicsRayQueryParameters3D.create(from, to)
 	var hit := space.intersect_ray(q)
-	return (hit.position.y if hit.has("position") else 0.0)
+	return (hit.position.y if hit.has("position") else INF)
