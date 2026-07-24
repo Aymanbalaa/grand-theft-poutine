@@ -59,7 +59,7 @@ CHARACTER OK: anim=true clips=["attack-kick-left", "attack-kick-right", "attack-
 BONES: ["root", "leg-left", "leg-right", "torso", "arm-left", "arm-right", "head"]
 ```
 
-31 animation clips total, including **`idle`** and **`walk`** (and `sprint`, `jump`, `crouch`,
+32 animation clips total, including **`idle`** and **`walk`** (and `sprint`, `jump`, `crouch`,
 `sit`, emotes, combat, wheelchair-accessibility clips, etc.) — Task 2 can wire idle/walk
 directly, no static-only fallback needed. The skeleton has a simple 7-bone rig
 (`root` → `leg-left`/`leg-right`/`torso` → `torso` → `arm-left`/`arm-right`/`head`); the
@@ -83,6 +83,6 @@ handle final in-world scale.
 Loaded and instantiated in Godot 4.5 headless via `game/tests/character_model_test.gd`
 (`tools/godot/godot_console.exe --headless --path game --script res://tests/character_model_test.gd`,
 after `tools/godot/godot_console.exe --headless --path game --import`). Loaded without error, with
-a non-null `AnimationPlayer` (31 clips, including `idle`/`walk`) and a `Skeleton3D` (7 bones,
+a non-null `AnimationPlayer` (32 clips, including `idle`/`walk`) and a `Skeleton3D` (7 bones,
 including `head`); see native dimensions table above for the reported world-space bounding-box
 size.
