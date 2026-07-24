@@ -37,8 +37,9 @@ func _process(delta: float) -> void:
 		_env.ambient_light_energy = 0.45 + 0.6 * daylight
 		var amb := Color(0.17, 0.19, 0.30).lerp(Color(0.92, 0.90, 0.86), daylight)
 		_env.ambient_light_color = amb.lerp(Color(1.0, 0.72, 0.5), dusk * 0.6)
-		var vnight := 1.0 - daylight
-		_env.volumetric_fog_enabled = vnight > 0.25
+		# night_amount (set above = 1.0 - daylight) is the single source of truth;
+		# vnight was a redundant duplicate.
+		_env.volumetric_fog_enabled = night_amount > 0.25
 		# low density: extinction applies to the whole vista beyond fog length,
 		# so halos come from per-light volumetric energy, not thick fog
-		_env.volumetric_fog_density = 0.004 * smoothstep(0.25, 0.7, vnight)
+		_env.volumetric_fog_density = 0.004 * smoothstep(0.25, 0.7, night_amount)
