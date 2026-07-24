@@ -109,6 +109,19 @@ func _init() -> void:
 		quit(1)
 		return
 	print("DECALS OK: %d manholes" % decals.call("manhole_count"))
+	var grass := root.get_node_or_null("Grass")
+	if grass == null:
+		push_error("FAIL: Grass node missing")
+		quit(1)
+		return
+	# let it scan resident terrain + regenerate for a few ticks
+	for _i in 30:
+		await process_frame
+	if grass.call("green_cell_count") <= 0:
+		push_error("FAIL: no green terrain cells discovered")
+		quit(1)
+		return
+	print("GRASS OK: %d green cells, %d blades" % [grass.call("green_cell_count"), grass.call("blade_count")])
 	if root.get_node_or_null("Credits") == null or not InputMap.has_action("credits"):
 		push_error("FAIL: credits overlay or action missing")
 		quit(1)
