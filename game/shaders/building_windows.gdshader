@@ -40,7 +40,7 @@ vec3 interior_room(vec2 g, vec3 rl, float room_seed) {
 	float pick = fract(room_seed * 3.11);
 	vec3 room = (pick < 0.4) ? warm : (pick < 0.75 ? cool : dim);
 	// depth shade: back wall darkest, side walls mid, ceiling brightest (fake ceiling light)
-	float shade = 1.0 - 0.55 * (hit.z / depth);
+	float shade = 1.0 - 0.7 * (hit.z / depth);
 	shade *= (t == ty && rl.y < 0.0) ? 1.25 : 1.0;   // looking up -> ceiling, brighter
 	shade *= (t == ty && rl.y > 0.0) ? 0.7  : 1.0;    // floor, darker
 	// a back-wall furniture band (single horizontal stripe) for readable depth
@@ -147,8 +147,10 @@ void fragment() {
 				(f.y - lo.y) / max(hi.y - lo.y, 1e-3)), 0.0, 1.0);
 		float room_seed = fract(sin(dot(cell, vec2(19.19, 71.7)) + seed * 23.0) * 43758.5453);
 		vec3 room = interior_room(g, rl, room_seed);
-		// only where we're actually seeing into the room (rl.z>0) and inside the glass
-		col = mix(col, room, inner * step(1e-3, rl.z));
+		// only where we're actually seeing into the room (rl.z>0) and inside the glass;
+		// fade out at night so the emissive-window path (below) owns the night look
+		float day_gate = 1.0 - smoothstep(0.45, 0.9, night_amount);
+		col = mix(col, room, inner * step(1e-3, rl.z) * day_gate);
 	}
 
 	col = mix(col, base * 1.15, clamp(door_rim, 0.0, 1.0));

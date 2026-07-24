@@ -7,7 +7,10 @@ uniform float wind_amp = 0.06;
 void vertex() {
 	// sway the top of the card; VERTEX.y in [0..~0.6], base stays anchored
 	float top = clamp(VERTEX.y / 0.6, 0.0, 1.0);
-	float phase = NODE_POSITION_WORLD.x * 0.7 + NODE_POSITION_WORLD.z * 0.9 + TIME * 1.6;
+	// per-instance phase: MODEL_MATRIX[3] is this blade's world origin (varies per
+	// MultiMesh instance); NODE_POSITION_WORLD would be the shared node origin -> lockstep
+	vec3 inst = MODEL_MATRIX[3].xyz;
+	float phase = inst.x * 0.7 + inst.z * 0.9 + TIME * 1.6;
 	VERTEX.x += sin(phase) * wind_amp * top;
 	VERTEX.z += cos(phase * 0.9) * wind_amp * 0.6 * top;
 }
