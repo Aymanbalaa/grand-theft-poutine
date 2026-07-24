@@ -126,6 +126,14 @@ static func _find_mesh(node: Node, xform: Transform3D) -> Dictionary:
 				fixed.roughness = 1.0
 				m.surface_set_material(s, fixed)
 			else:
+				# colormap safety net (white-car-bug class): a fresh import can drop
+				# the external-URI colormap.png, leaving the kept material untextured
+				# white. Re-assign it when no albedo texture survived.
+				var bmat := mat as BaseMaterial3D
+				if bmat != null and bmat.albedo_texture == null:
+					var tex := load("res://assets/models/props/Textures/colormap.png") as Texture2D
+					if tex != null:
+						bmat.albedo_texture = tex
 				m.surface_set_material(s, mat)
 		return {"mesh": m, "xform": xform}
 	for child in node.get_children():
