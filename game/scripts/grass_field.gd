@@ -15,6 +15,7 @@ const REGEN_SEC := 0.25
 
 var _green := {}           # Vector2i -> true (green cells discovered so far)
 var _scanned := {}         # terrain tile instance_id -> true (scanned once)
+var _scanned_roots := {}   # tile root instance_id -> true (fully walked, skip find_children)
 var _mm := MultiMesh.new()
 var _accum := 1.0
 var _last_cell := Vector2i(2147483647, 0)
@@ -59,6 +60,10 @@ func _scan_near_terrain(cam: Vector3) -> void:
 		var root3d := tile_root as Node3D
 		if root3d == null or not root3d.visible:
 			continue
+		var root_id := root3d.get_instance_id()
+		if _scanned_roots.has(root_id):
+			continue
+		var fully_scanned := true
 		for child in root3d.find_children("*", "MeshInstance3D", true, false):
 			var mi := child as MeshInstance3D
 			if mi == null or mi.mesh == null:
@@ -75,6 +80,7 @@ func _scan_near_terrain(cam: Vector3) -> void:
 			var world_aabb: AABB = mi.global_transform * mi.get_aabb()
 			var closest: Vector3 = cam.clamp(world_aabb.position, world_aabb.position + world_aabb.size)
 			if closest.distance_to(cam) > RING * 2.0:
+				fully_scanned = false
 				continue
 			_scanned[id] = true
 			var arr := mi.mesh.surface_get_arrays(0)
@@ -88,6 +94,8 @@ func _scan_near_terrain(cam: Vector3) -> void:
 					continue
 				var w: Vector3 = xf * verts[i]
 				_green[_cell_of(w.x, w.z)] = true
+		if fully_scanned:
+			_scanned_roots[root_id] = true
 
 func _process(delta: float) -> void:
 	_accum += delta
