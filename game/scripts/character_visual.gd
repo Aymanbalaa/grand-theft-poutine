@@ -47,8 +47,19 @@ func _ready() -> void:
 				if n3d != null:
 					n3d.scale = Vector3.ONE * MODEL_SCALE
 					n3d.rotation.y = MODEL_YAW
+				# colormap net MUST run before _attach_tuque: it only fills
+				# materials missing an albedo_texture, and the tuque box is exactly
+				# such a material — running it after would tint the tuque with the colormap.
 				_apply_colormap_safety_net(inst)
 				_anim = inst.find_child("AnimationPlayer", true, false) as AnimationPlayer
+				if _anim != null:
+					# glTF import leaves clips non-looping; force real looping instead of
+					# relying on replay-on-finish (which only looks seamless because the
+					# Kenney clips happen to author first==last frame).
+					for clip in [IDLE_CLIP, WALK_CLIP]:
+						var a := _anim.get_animation(clip)
+						if a != null:
+							a.loop_mode = Animation.LOOP_LINEAR
 				_attach_tuque(inst)
 				_model_mode = true
 				return
