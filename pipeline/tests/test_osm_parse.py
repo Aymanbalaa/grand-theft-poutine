@@ -4,6 +4,7 @@ from pipeline.osm_parse import _assemble_rings
 
 FIX = Path(__file__).parent / "fixtures" / "mini.osm.xml"
 RIVER = Path(__file__).parent / "fixtures" / "river.osm.xml"
+NAV = Path(__file__).parent / "fixtures" / "nav.osm.xml"
 
 def test_counts():
     city = parse_osm(FIX)
@@ -91,3 +92,28 @@ def test_benches_and_hydrants_parsed():
     assert len(city.benches) == 1
     assert len(city.hydrants) == 1
     assert all(len(p) == 2 for p in city.benches + city.hydrants)
+
+def test_lanes_and_maxspeed_parsed():
+    city = parse_osm(NAV)
+    main = next(r for r in city.roads if r.osm_id == 200)
+    side = next(r for r in city.roads if r.osm_id == 201)
+    assert main.lanes == 3
+    assert abs(main.maxspeed - 50 / 3.6) < 1e-6
+    assert side.lanes is None and side.maxspeed is None
+
+def test_oneway_minus_one_flagged_reversed():
+    city = parse_osm(NAV)
+    inv = next(r for r in city.roads if r.osm_id == 202)
+    main = next(r for r in city.roads if r.osm_id == 200)
+    assert inv.oneway is True and inv.oneway_reversed is True
+    assert main.oneway is False and main.oneway_reversed is False
+
+def test_maxspeed_units():
+    from pipeline.osm_parse import _parse_maxspeed, _parse_lanes
+    assert abs(_parse_maxspeed("50 km/h") - 50 / 3.6) < 1e-6
+    assert abs(_parse_maxspeed("30 mph") - 30 * 0.44704) < 1e-6
+    assert _parse_maxspeed("walk") is None
+    assert _parse_maxspeed("0") is None
+    assert _parse_lanes("2") == 2
+    assert _parse_lanes("abc") is None
+    assert _parse_lanes("0") is None

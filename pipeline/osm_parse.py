@@ -16,6 +16,9 @@ class Road:
     width: float
     road_class: str = "residential"
     oneway: bool = False
+    lanes: int | None = None
+    maxspeed: float | None = None
+    oneway_reversed: bool = False
 
 @dataclass
 class Building:
@@ -47,6 +50,24 @@ _NUM = re.compile(r"[-+]?\d*\.?\d+")
 def _parse_meters(value: str) -> float | None:
     m = _NUM.search(value)
     return float(m.group()) if m else None
+
+def _parse_maxspeed(value: str) -> float | None:
+    """OSM maxspeed -> m/s. Bare numbers and 'km/h' are km/h, 'mph' is mph;
+    non-numeric ('walk', 'none') or non-positive -> None."""
+    m = _NUM.search(value)
+    if not m:
+        return None
+    n = float(m.group())
+    if n <= 0:
+        return None
+    return n * 0.44704 if "mph" in value else n / 3.6
+
+def _parse_lanes(value: str) -> int | None:
+    m = _NUM.search(value)
+    if not m:
+        return None
+    n = int(float(m.group()))
+    return n if n > 0 else None
 
 def _building_height(tags: dict[str, str]) -> float:
     if "height" in tags:
@@ -152,8 +173,13 @@ def parse_osm(xml_path: str | Path) -> CityData:
             pts = [latlon_to_xz(*nodes[r]) for r in refs if r in nodes]
             if len(pts) >= 2 and "highway" in tags:
                 width = config.ROAD_WIDTHS.get(tags["highway"], config.DEFAULT_ROAD_WIDTH)
-                city.roads.append(Road(wid, tags.get("name"), pts, width, tags["highway"],
-                                       tags.get("oneway") in ("yes", "true", "1", "-1")))
+                ow = tags.get("oneway")
+                city.roads.append(Road(
+                    wid, tags.get("name"), pts, width, tags["highway"],
+                    ow in ("yes", "true", "1", "-1"),
+                    lanes=_parse_lanes(tags["lanes"]) if "lanes" in tags else None,
+                    maxspeed=_parse_maxspeed(tags["maxspeed"]) if "maxspeed" in tags else None,
+                    oneway_reversed=(ow == "-1")))
             elif len(pts) >= 4 and refs[0] == refs[-1]:
                 ring = pts[:-1]
                 if "building" in tags:

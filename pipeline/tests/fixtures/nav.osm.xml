@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="fixture">
+  <node id="1" lat="45.5040" lon="-73.5535"><tag k="highway" v="traffic_signals"/></node>
+  <node id="2" lat="45.5040" lon="-73.5560"/>
+  <node id="3" lat="45.5040" lon="-73.5510"/>
+  <node id="4" lat="45.5022" lon="-73.5535"/>
+  <node id="5" lat="45.5058" lon="-73.5535"/>
+  <node id="6" lat="45.5050" lon="-73.5560"/>
+  <node id="7" lat="45.5050" lon="-73.5510"/>
+  <node id="8" lat="45.5030" lon="-73.5560"/>
+  <node id="9" lat="45.5030" lon="-73.5510"/>
+  <node id="10" lat="45.5045" lon="-73.5550"/>
+  <node id="11" lat="45.5045" lon="-73.5520"/>
+  <node id="12" lat="45.5035" lon="-73.5550"/>
+  <node id="13" lat="45.5035" lon="-73.5545"/>
+  <node id="14" lat="45.5040" lon="-73.5500"><tag k="highway" v="traffic_signals"/></node>
+  <way id="200">
+    <nd ref="2"/><nd ref="1"/><nd ref="3"/>
+    <tag k="highway" v="primary"/><tag k="name" v="Rue Principale"/>
+    <tag k="lanes" v="3"/><tag k="maxspeed" v="50"/>
+  </way>
+  <way id="201">
+    <nd ref="4"/><nd ref="1"/><nd ref="5"/>
+    <tag k="highway" v="residential"/><tag k="name" v="Rue Transversale"/>
+  </way>
+  <way id="202">
+    <nd ref="6"/><nd ref="7"/>
+    <tag k="highway" v="residential"/><tag k="name" v="Rue Inverse"/>
+    <tag k="oneway" v="-1"/>
+  </way>
+  <way id="203">
+    <nd ref="8"/><nd ref="9"/>
+    <tag k="highway" v="service"/>
+  </way>
+  <way id="204">
+    <nd ref="10"/><nd ref="11"/>
+    <tag k="highway" v="footway"/>
+  </way>
+  <way id="205">
+    <nd ref="12"/><nd ref="13"/>
+    <tag k="highway" v="steps"/>
+  </way>
+</osm>
