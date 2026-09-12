@@ -89,3 +89,17 @@ def test_prop_positions_in_metadata(tmp_path):
         assert key in meta
         assert all(len(p) == 3 for p in meta[key])
     assert len(meta["trees"]) >= 1
+
+def test_export_writes_nav(tmp_path):
+    city = parse_osm(FIX)
+    meta = export_city(city, tmp_path)
+    assert meta["nav_file"] == config.NAV_FILE
+    nav = json.loads((tmp_path / config.NAV_FILE).read_text(encoding="utf-8"))
+    assert set(nav) == {"nodes", "roads", "signals", "walks"}
+    assert len(nav["roads"]) >= 1
+
+def test_export_nav_size_guard_raises(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, "NAV_MAX_BYTES", 1)
+    city = parse_osm(FIX)
+    with pytest.raises(ValueError, match="nav.json"):
+        export_city(city, tmp_path)

@@ -9,6 +9,7 @@ from pipeline.decals import manhole_spots
 from pipeline.geo import latlon_to_xz
 from pipeline.landmarks import export_landmarks
 from pipeline.minimap import render_minimap
+from pipeline.nav import build_nav
 from pipeline.osm_parse import CityData
 from pipeline.streets import build_street_grid, district_polys
 from pipeline.tiler import build_tiles
@@ -21,6 +22,16 @@ def _without_landmark_buildings(city: CityData) -> CityData:
         return all(math.hypot(cx - ax, cz - az) > r for (ax, az), r in anchors)
     # replace() keeps every other field, so future CityData fields can't be dropped
     return dataclasses.replace(city, buildings=[b for b in city.buildings if keep(b)])
+
+def _nav_bytes(city: CityData, hm) -> bytes:
+    """Serialize the nav graph; if over budget, drop footpaths beyond the
+    downtown radius (roads/signals are never pruned), else fail loudly."""
+    for path_radius in (None, config.MANHOLE_RADIUS):
+        data = json.dumps(build_nav(city, hm=hm, path_radius=path_radius),
+                          sort_keys=True, separators=(",", ":")).encode("utf-8")
+        if len(data) <= config.NAV_MAX_BYTES:
+            return data
+    raise ValueError(f"{config.NAV_FILE}: {len(data)} bytes over NAV_MAX_BYTES")
 
 def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
     city = _without_landmark_buildings(city)
@@ -53,6 +64,9 @@ def export_city(city: CityData, out_dir: str | Path, hm=None) -> dict:
         "hydrants": [[round(x, 1), round((hm.sample(x, z) if hm is not None else 0.0), 1), round(z, 1)]
                      for x, z in city.hydrants],
     }
+    nav_bytes = _nav_bytes(city, hm)
+    (out / config.NAV_FILE).write_bytes(nav_bytes)
+    meta["nav_file"] = config.NAV_FILE
     (out / "city_metadata.json").write_text(
         json.dumps(meta, sort_keys=True, indent=1), encoding="utf-8"
     )
