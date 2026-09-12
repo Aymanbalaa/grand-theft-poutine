@@ -86,8 +86,10 @@ def test_side_walks_offset_both_sides():
     zs = sorted({round(p[2], 1) for w in sides for p in w if abs(p[0]) > 20 and abs(p[2]) < 8})
     assert zs == [-6.2, 6.2]
     # residential w=6 runs along x=0: |x| = 3 + 1.18 = 4.18
-    xs = sorted({round(p[0], 1) for w in sides for p in w if abs(p[2]) > 20 and abs(p[0]) < 8})
+    xs = sorted({round(p[0], 1) for w in sides for p in w if 20 < abs(p[2]) < 100 and abs(p[0]) < 8})
     assert xs == [-4.2, 4.2]
+    # straight 2-point sidewalk-class ways (way 202) still get both sides
+    assert len([w for w in sides if all(abs(p[2] + 110.6) < 6 for p in w)]) == 2
 
 def test_side_walks_trimmed_at_junction_and_ends():
     nav = build_nav(_city())

@@ -133,7 +133,7 @@ def _build_walks(roads, hm, nodes: _Nodes, path_radius: float | None) -> list[di
     for r in sorted(roads, key=lambda r: r.osm_id):
         if len(r.points) < 2:
             continue
-        if r.road_class in config.SIDEWALK_CLASSES and r.width > 0 and len(r.points) >= 3:
+        if r.road_class in config.SIDEWALK_CLASSES and r.width > 0:
             intervals = [iv for iv in _clear_intervals(r.points, junctions, config.SIDEWALK_END_TRIM)
                          if iv[1] - iv[0] >= 4.0]
             jitter = ((r.osm_id * 2654435761) % 5 - 2) * 0.001     # same as sidewalk_mesh
