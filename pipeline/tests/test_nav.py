@@ -75,3 +75,55 @@ def test_deterministic():
     a = json.dumps(build_nav(city), sort_keys=True)
     b = json.dumps(build_nav(city), sort_keys=True)
     assert a == b
+
+def _walk_nodes(nav, kind):
+    return [[nav["nodes"][i] for i in w["n"]] for w in nav["walks"] if w["kind"] == kind]
+
+def test_side_walks_offset_both_sides():
+    nav = build_nav(_city())
+    sides = _walk_nodes(nav, "side")
+    # primary w=10 runs along z=0: sidewalk centerlines at |z| = 5 + 0.18 + 1.0 = 6.18
+    zs = sorted({round(p[2], 1) for w in sides for p in w if abs(p[0]) > 20 and abs(p[2]) < 8})
+    assert zs == [-6.2, 6.2]
+    # residential w=6 runs along x=0: |x| = 3 + 1.18 = 4.18
+    xs = sorted({round(p[0], 1) for w in sides for p in w if abs(p[2]) > 20 and abs(p[0]) < 8})
+    assert xs == [-4.2, 4.2]
+
+def test_side_walks_trimmed_at_junction_and_ends():
+    nav = build_nav(_city())
+    for w in _walk_nodes(nav, "side"):
+        for x, _, z in w:
+            assert math.hypot(x, z) >= config.SIDEWALK_END_TRIM - 0.5
+
+def test_crossings_at_junction_and_dead_ends():
+    nav = build_nav(_city())
+    crosses = _walk_nodes(nav, "cross")
+    assert all(len(w) == 2 for w in crosses)
+    for (xa, _, za), (xb, _, zb) in crosses:
+        assert math.hypot(xa - xb, za - zb) <= config.NAV_CROSS_MAX + 1e-6
+    at_j = [w for w in crosses if all(math.hypot(x, z) <= config.NAV_CROSS_RADIUS for x, _, z in w)]
+    assert len(at_j) >= 4                      # straight crossings + same-side continuations, no diagonals
+    # dead end of the primary at x ~ -195: its two sidewalk ends are joined
+    west = [w for w in crosses if all(x < -150 and abs(z) < 8 for x, _, z in w)]
+    assert len(west) == 1                      # (way 202's dead end sits at z ~ -110, excluded)
+
+def test_paths_include_footway_and_steps():
+    nav = build_nav(_city())
+    assert len(_walk_nodes(nav, "path")) == 2
+
+def test_walk_heights_follow_heightmap():
+    hm = Heightmap(grid=np.full((4, 4), 5.0, dtype=np.float32),
+                   x0=-3000.0, z0=-3000.0, step_x=2000.0, step_z=2000.0)
+    nav = build_nav(_city(), hm=hm)
+    for w in nav["walks"]:
+        for i in w["n"]:
+            y = nav["nodes"][i][1]
+            if w["kind"] == "path":
+                assert y == 5.05
+            else:
+                assert abs(y - 5.17) <= 0.003      # +-2 mm per-road jitter, like sidewalk_mesh
+
+def test_path_radius_prunes_far_footpaths():
+    nav = build_nav(_city(), path_radius=10.0)
+    assert _walk_nodes(nav, "path") == []
+    assert len(_walk_nodes(nav, "side")) > 0

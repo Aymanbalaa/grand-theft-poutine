@@ -9,6 +9,7 @@ from pipeline import config
 from pipeline.geo import latlon_to_xz
 from pipeline.osm_parse import CityData
 from pipeline.meshes import building_mesh, road_mesh, sidewalk_mesh, roadmark_mesh, area_piece_mesh, terrain_tile_mesh, traffic_light_mesh, awning_mesh
+from pipeline.nav import road_junctions
 
 def assign_tile(x: float, z: float) -> tuple[int, int]:
     return (math.floor(x / config.TILE_SIZE), math.floor(z / config.TILE_SIZE))
@@ -44,12 +45,7 @@ def build_tiles(city: CityData, hm=None) -> dict[tuple[int, int], trimesh.Scene]
         if m is not None:
             cat = "paths" if r.road_class in config.PATH_CLASSES else "roads"
             buckets[assign_tile(*r.points[0])][cat].append(m)
-    counts: dict[tuple[float, float], int] = defaultdict(int)
-    for r in city.roads:
-        if r.road_class in config.SIDEWALK_CLASSES or r.road_class in config.ROADMARK_CLASSES:
-            for x, z in r.points:
-                counts[(round(x, 2), round(z, 2))] += 1
-    junctions = frozenset(k for k, v in counts.items() if v >= 2)
+    junctions = road_junctions(city.roads)
     for r in city.roads:
         m = sidewalk_mesh(r, hm, junctions=junctions)
         if m is not None:
