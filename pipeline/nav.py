@@ -88,6 +88,43 @@ def _build_roads(roads, hm, nodes: _Nodes) -> list[dict]:
                     "oneway": 1 if r.oneway else 0, "lanes": lanes, "speed": _road_speed(r)})
     return out
 
+def _node_arms(roads_out: list[dict]) -> dict[int, int]:
+    """Road arms touching each node: endpoint = 1, interior = 2 (same rule as
+    game/scripts/nav_graph.gd). Junction = arms >= 3."""
+    arms: dict[int, int] = defaultdict(int)
+    for rd in roads_out:
+        n = rd["n"]
+        last = len(n) - 1
+        for k, i in enumerate(n):
+            arms[i] += 1 if k in (0, last) else 2
+    return arms
+
+def _to_junction(node: int, nodes: _Nodes, roads_out: list[dict], arms: dict[int, int]) -> int:
+    """Stop-line signals sit a few metres before the intersection: walk along
+    every road through `node` (both ways) and return the nearest junction node
+    within NAV_SIGNAL_JUNCTION_REACH, else `node` itself (a mid-block signal)."""
+    if arms.get(node, 0) >= 3:
+        return node
+    best, best_d = node, config.NAV_SIGNAL_JUNCTION_REACH
+    for rd in roads_out:
+        n = rd["n"]
+        for k, i in enumerate(n):
+            if i != node:
+                continue
+            for step in (1, -1):
+                dist = 0.0
+                j = k
+                while 0 <= j + step < len(n):
+                    a, b = nodes.rows[n[j]], nodes.rows[n[j + step]]
+                    dist += math.hypot(a[0] - b[0], a[2] - b[2])
+                    j += step
+                    if dist > best_d:
+                        break
+                    if arms.get(n[j], 0) >= 3:
+                        best, best_d = n[j], dist
+                        break
+    return best
+
 def _snap_signals(signals, nodes: _Nodes, roads_out: list[dict]) -> list[int]:
     grid = _Grid()
     seen: set[int] = set()
@@ -97,6 +134,7 @@ def _snap_signals(signals, nodes: _Nodes, roads_out: list[dict]) -> list[int]:
                 seen.add(i)
                 x, _, z = nodes.rows[i]
                 grid.add(x, z, i)
+    arms = _node_arms(roads_out)
     out: set[int] = set()
     for sx, sz in signals:
         best, best_d = None, config.NAV_SIGNAL_SNAP
@@ -106,7 +144,7 @@ def _snap_signals(signals, nodes: _Nodes, roads_out: list[dict]) -> list[int]:
             if d < best_d:
                 best, best_d = i, d
         if best is not None:
-            out.add(best)
+            out.add(_to_junction(best, nodes, roads_out, arms))
     return sorted(out)
 
 def _side_points(pts: list[tuple[float, float]], side: float, off: float

@@ -14,8 +14,10 @@
   <node id="12" lat="45.5035" lon="-73.5550"/>
   <node id="13" lat="45.5035" lon="-73.5545"/>
   <node id="14" lat="45.5040" lon="-73.5500"><tag k="highway" v="traffic_signals"/></node>
+  <node id="15" lat="45.5040" lon="-73.55365"><tag k="highway" v="traffic_signals"/></node>
+  <node id="16" lat="45.5050" lon="-73.5535"><tag k="highway" v="traffic_signals"/></node>
   <way id="200">
-    <nd ref="2"/><nd ref="1"/><nd ref="3"/>
+    <nd ref="2"/><nd ref="15"/><nd ref="1"/><nd ref="3"/>
     <tag k="highway" v="primary"/><tag k="name" v="Rue Principale"/>
     <tag k="lanes" v="3"/><tag k="maxspeed" v="50"/>
   </way>
@@ -24,7 +26,7 @@
     <tag k="highway" v="residential"/><tag k="name" v="Rue Transversale"/>
   </way>
   <way id="202">
-    <nd ref="6"/><nd ref="7"/>
+    <nd ref="6"/><nd ref="16"/><nd ref="7"/>
     <tag k="highway" v="residential"/><tag k="name" v="Rue Inverse"/>
     <tag k="oneway" v="-1"/>
   </way>

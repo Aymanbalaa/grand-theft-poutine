@@ -112,6 +112,7 @@ NAV_SPEED_DEFAULTS = {   # m/s, used when maxspeed is absent; *_link uses its pa
     "tertiary": 11.0, "residential": 8.5, "unclassified": 8.5, "living_street": 5.0,
 }
 NAV_SIGNAL_SNAP = 3.0      # m: OSM signal -> nearest road node, else dropped
+NAV_SIGNAL_JUNCTION_REACH = 30.0   # m along the road: a stop-line signal is attributed to the junction it guards
 NAV_CROSS_RADIUS = 12.0    # m: sidewalk endpoints this close to a junction/way-end get crossings
 NAV_CROSS_MAX = 17.5       # m: max crossing length (excludes diagonal jaywalks ~20 m)
 NAV_MAX_BYTES = 8 * 1024 * 1024

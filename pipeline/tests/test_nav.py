@@ -52,11 +52,21 @@ def test_roads_are_densified_and_share_junction_node():
     x, _, z = nav["nodes"][next(iter(shared))]
     assert math.hypot(x, z) < 0.2                  # the junction is node J at the origin
 
-def test_signal_snaps_to_junction_node_and_far_one_dropped():
+def test_signals_attributed_to_junction_and_midblock_kept():
     nav = build_nav(_city())
-    assert len(nav["signals"]) == 1
-    x, _, z = nav["nodes"][nav["signals"][0]]
-    assert math.hypot(x, z) < 0.2
+    # J itself (node 1) and the stop-line signal 12 m west of J (node 15) both become J;
+    # the mid-block signal on way 202 (node 16) stays on its own node; far node 14 is dropped
+    assert len(nav["signals"]) == 2
+    pts = sorted((round(nav["nodes"][i][0]), round(nav["nodes"][i][2])) for i in nav["signals"])
+    assert pts == [(0, -111), (0, 0)]
+    j = next(i for i in nav["signals"] if abs(nav["nodes"][i][0]) < 0.2 and abs(nav["nodes"][i][2]) < 0.2)
+    assert j in _road(nav, 200)["n"] and j in _road(nav, 201)["n"]   # the shared junction node
+
+def test_signal_reach_is_bounded(monkeypatch):
+    monkeypatch.setattr(config, "NAV_SIGNAL_JUNCTION_REACH", 5.0)
+    nav = build_nav(_city())
+    # with a 5 m reach the 12 m stop-line signal can no longer fold into J: 3 distinct signal nodes
+    assert len(nav["signals"]) == 3
 
 def test_road_node_heights_follow_heightmap():
     hm = Heightmap(grid=np.full((4, 4), 5.0, dtype=np.float32),
