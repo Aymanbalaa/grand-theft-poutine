@@ -13,6 +13,7 @@ const KILL_Y := -50.0
 @onready var _speed_label := $HUD/SpeedLabel as Label
 
 var _driving: Car = null
+var _last_car: Car = null
 var _spawn := Vector3.ZERO
 
 func _ready() -> void:
@@ -102,6 +103,7 @@ func _nearest_car() -> Car:
 func _enter_car(car: Car) -> void:
 	if _driving != null:
 		return
+	_last_car = car
 	_driving = car
 	_player.visible = false
 	_player.set_physics_process(false)
@@ -126,3 +128,11 @@ func _exit_car() -> void:
 	(_player.get_node("CollisionShape3D") as CollisionShape3D).set_deferred("disabled", false)
 	(_player.get_node("CamPivot/SpringArm3D/PlayerCamera") as Camera3D).current = true
 	_speed_label.visible = false
+
+func agents_context() -> Dictionary:
+	# Read by Traffic/Pedestrians each physics frame: what the agents must brake for.
+	var ctx := {"player": _player.global_position, "player_on_foot": _player.visible}
+	var car := _driving if _driving != null else _last_car
+	if car != null:
+		ctx["car"] = car.global_position
+	return ctx

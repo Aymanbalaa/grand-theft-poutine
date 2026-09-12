@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/fly_camera.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/tile_loader.gd" id="2"]
@@ -14,6 +14,7 @@
 [ext_resource type="Script" path="res://scripts/props_multimesh.gd" id="12"]
 [ext_resource type="Script" path="res://scripts/decal_pool.gd" id="13"]
 [ext_resource type="Script" path="res://scripts/grass_field.gd" id="14"]
+[ext_resource type="Script" path="res://scripts/traffic.gd" id="15"]
 
 [sub_resource type="ShaderMaterial" id="sky_mat"]
 shader = ExtResource("11")
@@ -74,6 +75,9 @@ script = ExtResource("3")
 script = ExtResource("2")
 
 [node name="Cars" type="Node3D" parent="."]
+
+[node name="Traffic" type="Node3D" parent="."]
+script = ExtResource("15")
 
 [node name="LightPool" type="Node3D" parent="."]
 script = ExtResource("9")

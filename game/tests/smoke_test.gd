@@ -82,6 +82,43 @@ func _init() -> void:
 		quit(1)
 		return
 	print("CARS OK: %d" % cars.get_child_count())
+	var traffic := root.get_node_or_null("Traffic")
+	if traffic == null:
+		push_error("FAIL: Traffic node missing from main scene")
+		quit(1)
+		return
+	var gc: Dictionary = traffic.call("graph_counts")
+	if gc.get("nodes", 0) < 10000 or gc.get("roads", 0) < 1000 or gc.get("walks", 0) < 1000 or gc.get("signals", 0) < 500:
+		push_error("FAIL: nav graph too small: %s" % str(gc))
+		quit(1)
+		return
+	print("NAV OK: %d nodes, %d roads, %d walks, %d signals" % [gc["nodes"], gc["roads"], gc["walks"], gc["signals"]])
+	var enough := false
+	for i in 2400:  # spawn ticks are physics-time; poll, never fixed waits
+		await process_frame
+		if traffic.call("active_count") >= 20:
+			enough = true
+			break
+	if not enough:
+		push_error("FAIL: traffic never reached 20 active agents (active=%d)" % traffic.call("active_count"))
+		quit(1)
+		return
+	var before: PackedVector3Array = traffic.call("agent_positions")
+	var moved := false
+	for i in 900:
+		await process_frame
+		var now: PackedVector3Array = traffic.call("agent_positions")
+		for k in now.size():
+			if before[k].y > -9000.0 and now[k].y > -9000.0 and before[k].distance_to(now[k]) > 5.0:
+				moved = true
+				break
+		if moved:
+			break
+	if not moved:
+		push_error("FAIL: no traffic agent moved > 5 m")
+		quit(1)
+		return
+	print("TRAFFIC OK: %d active" % traffic.call("active_count"))
 	var pool := root.get_node_or_null("LightPool")
 	if pool == null or pool.call("lamp_count") < 400 or pool.get_child_count() != 24:
 		var lc: int = -1 if pool == null else pool.call("lamp_count")
