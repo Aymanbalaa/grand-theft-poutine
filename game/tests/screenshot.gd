@@ -16,6 +16,10 @@ const POSES := [
 	{"name": "driving_day",   "car": Vector3(-60, 0, -80),  "drive": true, "time": 0.4},
 	{"name": "driving_night", "car": Vector3(30, 0, 40),  "time": 0.95},
 	{"name": "uphill_facade", "pos": Vector3(-1500, 34, -560), "look": Vector3(-1530, 36, -625), "time": 0.4},
+	{"name": "signal",          "pos": Vector3(-168.0, 16.53, -215.2), "look": Vector3(-168.0, 11.53, -243.2), "time": 0.4,  "settle": 1200},
+	{"name": "signal_night",    "pos": Vector3(-168.0, 16.53, -215.2), "look": Vector3(-168.0, 11.53, -243.2), "time": 0.95, "settle": 1200},
+	{"name": "crosswalk",       "pos": Vector3(-338.6, 11.33, 131.2),  "look": Vector3(-358.6, 7.33, 111.2),   "time": 0.4,  "settle": 1200},
+	{"name": "crosswalk_night", "pos": Vector3(-338.6, 11.33, 131.2),  "look": Vector3(-358.6, 7.33, 111.2),   "time": 0.95, "settle": 1200},
 	{"name": "credits", "pos": Vector3(0, 600, 400), "look": Vector3(0, 0, 0), "time": 0.4, "credits": true},
 ]
 
@@ -69,7 +73,7 @@ func _init() -> void:
 			fly_cam.current = true
 			fly_cam.position = pose["pos"]
 			fly_cam.look_at(pose["look"])
-			for i in 15:
+			for i in int(pose.get("settle", 15)):
 				await process_frame
 		var credits := root.get_node_or_null("Credits") as CanvasLayer
 		if credits != null:
