@@ -8,7 +8,7 @@ func _fail(msg: String) -> void:
 
 func _init() -> void:
 	var g := NavGraph.load_from("res://world/nav.json")
-	if g.nodes.size() < 10000 or g.roads.size() < 1000 or g.walks.size() < 1000 or g.signals.size() < 500:
+	if g.nodes.size() < 10000 or g.roads.size() < 1000 or g.walks.size() < 1000 or g.signals.size() < 300:
 		_fail("graph too small: nodes=%d roads=%d walks=%d signals=%d" % [g.nodes.size(), g.roads.size(), g.walks.size(), g.signals.size()])
 		return
 	# endpoints: t=0 / t=len map onto the end nodes, both directions

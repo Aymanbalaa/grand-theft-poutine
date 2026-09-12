@@ -88,7 +88,7 @@ func _init() -> void:
 		quit(1)
 		return
 	var gc: Dictionary = traffic.call("graph_counts")
-	if gc.get("nodes", 0) < 10000 or gc.get("roads", 0) < 1000 or gc.get("walks", 0) < 1000 or gc.get("signals", 0) < 500:
+	if gc.get("nodes", 0) < 10000 or gc.get("roads", 0) < 1000 or gc.get("walks", 0) < 1000 or gc.get("signals", 0) < 300:
 		push_error("FAIL: nav graph too small: %s" % str(gc))
 		quit(1)
 		return

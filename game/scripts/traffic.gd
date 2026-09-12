@@ -331,7 +331,7 @@ func _stop_rules(i: int, fwd: Vector3, pos_now: Vector3, target: float) -> float
 	var d: float = stop[0]
 	var node: int = stop[1]
 	if graph.signals.has(node):
-		var grp := graph.signal_group(node, fwd)
+		var grp := graph.signal_group(node, graph.road_tangent(_road[i], _dir[i], _t[i] + d))
 		if not graph.signal_green(node, grp, _time) and d > STOP_LINE - 1.0:
 			target = minf(target, _stop_speed(d - STOP_LINE))
 	else:
@@ -340,6 +340,8 @@ func _stop_rules(i: int, fwd: Vector3, pos_now: Vector3, target: float) -> float
 		if d < JUNCTION_R:
 			var owner: int = _occupant.get(node, -1)
 			if owner < 0 or _active[owner] == 0:
+				if _hold[i] >= 0 and _hold[i] != node:
+					_release(i)
 				_occupant[node] = i
 				_hold[i] = node
 			elif owner != i and d > STOP_LINE - 1.0:
