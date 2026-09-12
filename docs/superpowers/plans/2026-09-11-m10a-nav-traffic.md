@@ -504,8 +504,8 @@ def test_crossings_at_junction_and_dead_ends():
     at_j = [w for w in crosses if all(math.hypot(x, z) <= config.NAV_CROSS_RADIUS for x, _, z in w)]
     assert len(at_j) >= 4                      # straight crossings + same-side continuations, no diagonals
     # dead end of the primary at x ~ -195: its two sidewalk ends are joined
-    west = [w for w in crosses if all(x < -150 for x, _, _ in w)]
-    assert len(west) == 1
+    west = [w for w in crosses if all(x < -150 and abs(z) < 8 for x, _, z in w)]
+    assert len(west) == 1                      # (way 202's dead end sits at z ~ -110, excluded)
 
 def test_paths_include_footway_and_steps():
     nav = build_nav(_city())
