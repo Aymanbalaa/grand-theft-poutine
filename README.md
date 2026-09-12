@@ -40,8 +40,8 @@ HRDEM elevation ┘     offline, deterministic     glTF tiles         runtime
 - [x] **M6b** — Light: warm sun & ambient, thinner fog, pooled street lights, car headlights
 - [x] **M6c** — Things: Kenney CC0 car models, traffic lights at real signal positions, credits screen (**C**)
 - [x] **M7** — Polish: procedural audio (engine/footsteps/ambient — synthesized, license-free), kill-plane respawn, one-way streets get white centerlines, facades anchored to real ground height, car & headlight tuning, landmark collision
-- [x] **M8** — Realism Graphics I: CC0 wall/road/sidewalk textures behind facade & window-frame shaders, warm sun/shadow/fog grade with streetlight & headlight pools, Kenney CC0 car models, OSM traffic-light props, credits screen (**C**)
-- [x] **M9** — Realism Graphics II: procedural sky/water/terrain shaders, crosswalks & manhole decals & ground-floor doors, fake window interiors & camera-near grass, CC0 player model, storefront awnings, lamp-colormap safety net
+- [x] **M8** — Realism Graphics I: procedural sky/water/terrain shaders (fbm clouds & sun disc, analytic waves, grass/dirt/rock blend + dirt paths), CC0 wall/road/sidewalk textures with per-building facade variation, 16,498 OSM trees & 21 benches via a pooled MultiMesh prop renderer, white-car colormap fix
+- [x] **M9** — Realism Graphics II: warm sun/shadow/fog grade (shadow reach, contrast/saturation grade, volumetric night fog), crosswalks & manhole decals & ground-floor doors, fake window interiors & camera-near grass, CC0 player model, storefront awnings, lamp-colormap safety net
 - [x] **M10a** — Traffic: pipeline exports a road + sidewalk nav graph (`nav.json`, tiles byte-identical); 40 pooled cars drive real lanes on the right, queue at real signal positions, yield at junctions, brake for you, and collide with your car; pooled headlights at night
 
 ## Run it
