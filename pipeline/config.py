@@ -100,6 +100,22 @@ MANHOLE_SPACING = 57.0    # m along-road; off-sync with dash period
 MANHOLE_RADIUS = 900.0    # only near downtown, like car spawns
 MAX_MANHOLES = 600
 
+# --- M10a nav graph (pipeline/nav.py -> game/world/nav.json) ---
+NAV_FILE = "nav.json"
+NAV_DRIVABLE_CLASSES = ("motorway", "trunk", "primary", "secondary", "tertiary",
+                        "residential", "unclassified", "living_street",
+                        "motorway_link", "trunk_link", "primary_link",
+                        "secondary_link", "tertiary_link")   # no "service" (parking aisles/driveways)
+NAV_PATH_CLASSES = ("footway", "pedestrian", "path", "steps", "living_street")
+NAV_SPEED_DEFAULTS = {   # m/s, used when maxspeed is absent; *_link uses its parent class
+    "motorway": 25.0, "trunk": 20.0, "primary": 14.0, "secondary": 12.5,
+    "tertiary": 11.0, "residential": 8.5, "unclassified": 8.5, "living_street": 5.0,
+}
+NAV_SIGNAL_SNAP = 3.0      # m: OSM signal -> nearest road node, else dropped
+NAV_CROSS_RADIUS = 12.0    # m: sidewalk endpoints this close to a junction/way-end get crossings
+NAV_CROSS_MAX = 17.5       # m: max crossing length (excludes diagonal jaywalks ~20 m)
+NAV_MAX_BYTES = 8 * 1024 * 1024
+
 # --- M6a Task 2: category-coded wall vertex alpha (facade shader selection) ---
 WALL_CATEGORY_ALPHA = {"residential": 0, "commercial": 1, "church": 2,
                        "industrial": 3, "civic": 4, "default": 5}
