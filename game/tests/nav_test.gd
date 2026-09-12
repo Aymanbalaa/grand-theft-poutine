@@ -71,6 +71,62 @@ func _init() -> void:
 	if travelled < 200.0:
 		_fail("walk walker only travelled %.1f m" % travelled)
 		return
+	# lane offsets: two-way = clamp(w/4, 1, 1.75); oneway spreads lanes, lane 0 rightmost
+	var two_way := -1
+	var one_way := -1
+	for i in g.roads.size():
+		if two_way < 0 and g.roads[i]["oneway"] == 0:
+			two_way = i
+		if one_way < 0 and g.roads[i]["oneway"] == 1 and int(g.roads[i]["lanes"]) >= 2:
+			one_way = i
+		if two_way >= 0 and one_way >= 0:
+			break
+	if two_way < 0 or one_way < 0:
+		_fail("graph lacks a two-way road or a multi-lane oneway road")
+		return
+	var w2: float = g.roads[two_way]["w"]
+	if absf(g.lane_offset(two_way, 0) - clampf(w2 / 4.0, 1.0, 1.75)) > 1e-6:
+		_fail("two-way lane_offset wrong")
+		return
+	var w1: float = g.roads[one_way]["w"]
+	var lanes1: int = g.roads[one_way]["lanes"]
+	if g.lane_offset(one_way, 0) <= g.lane_offset(one_way, lanes1 - 1) \
+			or absf(g.lane_offset(one_way, 0) - (w1 / 2.0 - w1 * 0.5 / float(lanes1))) > 1e-6:
+		_fail("oneway lane_offset wrong (lane 0 must be rightmost)")
+		return
+	# lateral offset lies to the RIGHT of travel and flips with dir
+	var mid := g.road_length(two_way) * 0.5
+	var c := g.road_point(two_way, 1, 0.0, mid)
+	var tan := g.road_tangent(two_way, 1, mid)
+	var right := Vector3(-tan.z, 0.0, tan.x)
+	if (g.road_point(two_way, 1, 1.5, mid) - c).dot(right) < 1.4:
+		_fail("road_point lateral offset is not to the right of travel")
+		return
+	if (g.road_point(two_way, -1, 1.5, g.road_length(two_way) - mid) - c).dot(right) > -1.4:
+		_fail("road_point lateral offset does not flip for dir=-1")
+		return
+	# next_stop: first stop ahead at t=0 in both directions; nothing past the end
+	var stop_road := -1
+	for i in g.roads.size():
+		if not (g.roads[i]["stops"] as Array).is_empty():
+			stop_road = i
+			break
+	if stop_road < 0:
+		_fail("no road carries a stop node")
+		return
+	var stops: Array = g.roads[stop_road]["stops"]
+	var st := g.next_stop(stop_road, 1, 0.0)
+	if st.is_empty() or absf(st[0] - stops[0][0]) > 1e-4 or st[1] != stops[0][1]:
+		_fail("next_stop forward wrong: %s" % str(st))
+		return
+	var last_stop: Array = stops[stops.size() - 1]
+	var st_b := g.next_stop(stop_road, -1, 0.0)
+	if st_b.is_empty() or absf(st_b[0] - (g.road_length(stop_road) - last_stop[0])) > 1e-4 or st_b[1] != last_stop[1]:
+		_fail("next_stop reverse wrong: %s" % str(st_b))
+		return
+	if not g.next_stop(stop_road, 1, g.road_length(stop_road) + 5.0).is_empty():
+		_fail("next_stop reports a stop behind the agent")
+		return
 	# signals: some node has two non-empty groups (a real cross street), and the
 	# two groups are never green together over a 16 s sweep
 	var probe := -1
