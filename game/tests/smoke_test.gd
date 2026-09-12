@@ -119,6 +119,14 @@ func _init() -> void:
 		quit(1)
 		return
 	print("TRAFFIC OK: %d active" % traffic.call("active_count"))
+	var sp: Dictionary = traffic.call("signal_probe")
+	if not (sp.get("a_green", false) and sp.get("a_red", false) and sp.get("b_green", false) and sp.get("b_red", false)) or sp.get("both", true):
+		push_error("FAIL: signal phases wrong: %s" % str(sp))
+		quit(1)
+		return
+	print("SIGNALS OK")
+	traffic.call("clear_all")
+	traffic.set("enabled", false)   # later gates (ENTER/DRIVE/EXIT) must not meet traffic
 	var pool := root.get_node_or_null("LightPool")
 	if pool == null or pool.call("lamp_count") < 400 or pool.get_child_count() != 24:
 		var lc: int = -1 if pool == null else pool.call("lamp_count")

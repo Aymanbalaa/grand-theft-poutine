@@ -172,6 +172,8 @@ func _context() -> Dictionary:
 func _physics_process(delta: float) -> void:
 	_time += delta
 	if not enabled or graph == null or graph.roads.is_empty():
+		for l in _lights:
+			l.light_energy = 0.0
 		return
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
@@ -317,11 +319,83 @@ func _release(i: int) -> void:
 			_occupant.erase(node)
 		_hold[i] = -1
 
-func _stop_rules(_i: int, _fwd: Vector3, _pos_now: Vector3, target: float) -> float:
-	return target   # Task 7: signals + junction yield
+func _stop_rules(i: int, fwd: Vector3, pos_now: Vector3, target: float) -> float:
+	# Signals: stop at a red's stop line unless the bumper is already past it.
+	# Unsignalized junctions: slow to half within 15 m; the first agent inside
+	# the 8 m radius owns the node, others hold at the stop line until it leaves.
+	var stop := graph.next_stop(_road[i], _dir[i], _t[i])
+	if stop.is_empty():
+		if _hold[i] >= 0 and pos_now.distance_to(graph.nodes[_hold[i]]) > JUNCTION_R + 2.0:
+			_release(i)
+		return target
+	var d: float = stop[0]
+	var node: int = stop[1]
+	if graph.signals.has(node):
+		var grp := graph.signal_group(node, fwd)
+		if not graph.signal_green(node, grp, _time) and d > STOP_LINE - 1.0:
+			target = minf(target, _stop_speed(d - STOP_LINE))
+	else:
+		if d < JUNCTION_SLOW:
+			target = minf(target, float(graph.roads[_road[i]]["speed"]) * 0.5)
+		if d < JUNCTION_R:
+			var owner: int = _occupant.get(node, -1)
+			if owner < 0 or _active[owner] == 0:
+				_occupant[node] = i
+				_hold[i] = node
+			elif owner != i and d > STOP_LINE - 1.0:
+				target = minf(target, _stop_speed(d - STOP_LINE))
+	if _hold[i] >= 0 and _hold[i] != node and pos_now.distance_to(graph.nodes[_hold[i]]) > JUNCTION_R + 2.0:
+		_release(i)
+	return target
 
-func _maybe_turn(_i: int, _node: int) -> void:
-	pass            # Task 7: turn at interior junctions
+func _maybe_turn(i: int, node: int) -> void:
+	# Passing an interior junction: with TURN_CHANCE take a side exit
+	# (never the continuation, never the reverse).
+	if not graph.is_junction(node):
+		return
+	_seed[i] = int((_seed[i] * 1103515245 + 12345) % 2147483648)
+	if float(_seed[i] % 1000) / 1000.0 >= TURN_CHANCE:
+		return
+	var options: Array = []
+	for e in graph.exits(node, _road[i], _dir[i]):
+		if not (e[0] == _road[i] and e[1] == _dir[i]):
+			options.append(e)
+	if options.is_empty():
+		return
+	var e: Array = options[NavGraph.pick(_seed[i], options.size())]
+	_release(i)
+	_enter_road(i, e[0], e[1], e[2])
+
+func signal_probe() -> Dictionary:
+	# Sweep one 16 s cycle on the first signal node that has two approach groups.
+	var out := {"a_green": false, "a_red": false, "b_green": false, "b_red": false, "both": false}
+	if graph == null:
+		return out
+	var probe := -1
+	for node in graph.signals:
+		var g0 := 0
+		var g1 := 0
+		for e in graph.exits(node, -1, 0, true):
+			if graph.signal_group(node, graph.road_tangent(e[0], e[1], e[2])) == 0:
+				g0 += 1
+			else:
+				g1 += 1
+		if g0 > 0 and g1 > 0:
+			probe = node
+			break
+	if probe < 0:
+		return out
+	var tt := 0.0
+	while tt < NavGraph.SIGNAL_PERIOD:
+		var ga := graph.signal_green(probe, 0, tt)
+		var gb := graph.signal_green(probe, 1, tt)
+		out["both"] = out["both"] or (ga and gb)
+		out["a_green"] = out["a_green"] or ga
+		out["a_red"] = out["a_red"] or not ga
+		out["b_green"] = out["b_green"] or gb
+		out["b_red"] = out["b_red"] or not gb
+		tt += 0.5
+	return out
 
 func _step_agent(i: int, delta: float, ctx: Dictionary) -> void:
 	var ri := _road[i]
@@ -350,7 +424,11 @@ func _step_agent(i: int, delta: float, ctx: Dictionary) -> void:
 		target = minf(target, maxf(0.0, (gap - HEADWAY_MIN) / HEADWAY_SEC))
 	# parked car in the lane: nudge toward the centerline while passing
 	var lane_off := graph.lane_offset(ri, _lane[i])
-	var want := maxf(0.6, lane_off - PASS_NUDGE) if _parked_ahead(pos, fwd, right) else lane_off
+	var want := lane_off
+	if _parked_ahead(pos, fwd, right):
+		want = lane_off - PASS_NUDGE               # always shift LEFT, away from the curb-parked car
+		if road["oneway"] == 0:
+			want = maxf(0.6, want)                  # two-way: never cross into the oncoming lane
 	_lat[i] = move_toward(_lat[i], want, LAT_RATE * delta)
 	# integrate
 	var sp := clampf(target, _speed[i] - BRAKE * delta, _speed[i] + ACCEL * delta)
