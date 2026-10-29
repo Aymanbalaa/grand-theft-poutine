@@ -13,6 +13,9 @@ const POSES := [
 	{"name": "night", "pos": Vector3(0.6, 1.7, 30.0), "look": Vector3(0.0, 4.5, -60.0), "mood": 1},
 	{"name": "roofs", "pos": Vector3(3.0, 22.0, 40.0), "look": Vector3(0.0, 8.0, -60.0), "mood": 0},
 	{"name": "market", "pos": Vector3(6.0, 2.0, -100.0), "look": Vector3(0.0, 8.0, -124.0), "mood": 0},
+	{"name": "vincent", "pos": Vector3(8.0, 1.7, -51.0), "look": Vector3(90.0, 4.0, -53.0), "mood": 0},
+	{"name": "commune", "pos": Vector3(-30.0, 1.7, -117.0), "look": Vector3(10.0, 6.0, -122.0), "mood": 0},
+	{"name": "corner", "pos": Vector3(-3.0, 7.0, -36.0), "look": Vector3(4.0, 2.0, -60.0), "mood": 0},
 	{"name": "day", "pos": Vector3(0.6, 1.7, 30.0), "look": Vector3(0.0, 4.5, -60.0), "mood": 2},
 ]
 
@@ -23,6 +26,7 @@ func _init() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	for i in 30:
 		await process_frame
+	(root.get("game") as Node).call("start_free")
 	root.call("show_hud", false)
 	for pose in POSES:
 		if only != "" and not only.split(",").has(pose["name"]):

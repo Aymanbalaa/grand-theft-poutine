@@ -4,6 +4,7 @@ Run: .venv/Scripts/python -m pipeline.slice_audio  ->  game/assets/slice/audio/*
 rain.wav       steady rain hiss + random drips/patter, seamless 12 s loop (stereo)
 drips.wav      gutter drips onto metal/puddles, sparse, 9 s loop (stereo)
 step_wet.wav   wet cobble footstep: thud + short splash
+sfx_*.wav      game cues (order, pickup, cash, fleur, fail, end, whistle, bump)
 """
 from __future__ import annotations
 
@@ -106,7 +107,51 @@ def step_wet(seconds: float = 0.28) -> np.ndarray:
     return 0.9 * x / np.abs(x).max()
 
 
+# ---------------------------------------------------------------- game cues
+
+def _tone(freq: float, dur: float, decay: float, harm=((1, 1.0), (2, 0.3), (3, 0.12))) -> np.ndarray:
+    t = np.arange(int(SR * dur)) / SR
+    x = sum(a * np.sin(2 * np.pi * freq * k * t) for k, a in harm)
+    env = np.minimum(1.0, t / 0.004) * np.exp(-t / decay)
+    return x * env
+
+
+def _seq(notes, gap: float, dur: float, decay: float) -> np.ndarray:
+    n = int(SR * (gap * (len(notes) - 1) + dur))
+    out = np.zeros(n)
+    for i, f in enumerate(notes):
+        s = int(SR * gap * i)
+        tone = _tone(f, dur, decay)
+        out[s:s + len(tone)] += tone
+    return 0.8 * out / np.abs(out).max()
+
+
+def game_cues() -> dict:
+    """Short UI cues: order ping, pickup arpeggio, cash chime, fleur sparkle,
+    fail, end-of-shift, police whistle (pickpocket), bag bump."""
+    rng = np.random.default_rng(9)
+    wt = np.arange(int(SR * 0.9)) / SR
+    trill = 1.0 + 0.04 * np.sign(np.sin(2 * np.pi * 22 * wt))
+    whistle = np.sin(2 * np.pi * np.cumsum(2900 * trill) / SR) * np.minimum(1, wt / 0.02) * np.exp(-wt / 0.6)
+    whistle += 0.15 * rng.standard_normal(len(wt)) * np.exp(-wt / 0.6)
+    n = int(SR * 0.25)
+    t = np.arange(n) / SR
+    bump = _lp(rng.standard_normal(n), 0.97) * np.exp(-t / 0.05)
+    return {
+        "order": _seq([659.3, 880.0], 0.11, 0.35, 0.18),
+        "pickup": _seq([523.3, 659.3, 784.0], 0.07, 0.3, 0.12),
+        "cash": _seq([1046.5, 1318.5, 1568.0, 2093.0], 0.055, 0.35, 0.1),
+        "fleur": _seq([784.0, 987.8, 1174.7, 1568.0, 1975.5], 0.08, 0.6, 0.25),
+        "fail": _seq([392.0, 311.1], 0.16, 0.45, 0.22),
+        "end": _seq([523.3, 659.3, 784.0, 1046.5], 0.14, 0.9, 0.4),
+        "whistle": 0.8 * whistle / np.abs(whistle).max(),
+        "bump": 0.9 * bump / np.abs(bump).max(),
+    }
+
+
 def main() -> None:
+    for name, x in game_cues().items():
+        _write(OUT / f"sfx_{name}.wav", x)
     _write(OUT / "rain.wav", rain())
     _write(OUT / "drips.wav", drips())
     _write(OUT / "step_wet.wav", step_wet())

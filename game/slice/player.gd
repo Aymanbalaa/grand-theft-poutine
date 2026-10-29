@@ -9,6 +9,14 @@ const RUN := 5.2
 const ROLL := 6.5
 const GRAVITY := 18.0
 
+signal punched(pos: Vector3, facing: Vector3)
+signal rolled(pos: Vector3)
+
+# Set by the game: returns true when E was used for an interaction (pickup,
+# delivery), so the wave emote doesn't fire.
+var interact_hook: Callable
+var _bag: Node3D
+
 var person: SlicePerson
 var pivot: Node3D
 var arm: SpringArm3D
@@ -77,6 +85,7 @@ func _unhandled_input(e: InputEvent) -> void:
 	elif e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT:
 		if not person.busy() and is_on_floor():
 			person.play("punch", 0.08, 1.4)
+			_emit_punch_later()
 	elif e is InputEventKey and e.pressed and not e.echo:
 		if e.keycode == KEY_SPACE and is_on_floor() and _roll_t <= 0.0:
 			var f := -global_transform.basis.z
@@ -84,8 +93,42 @@ func _unhandled_input(e: InputEvent) -> void:
 			_roll_dir = f
 			_roll_t = 0.75
 			person.play("roll", 0.05, 1.3)
-		elif e.keycode == KEY_E and not person.busy():
-			person.play("wave", 0.15)
+			rolled.emit(global_position)
+		elif e.keycode == KEY_E:
+			if interact_hook.is_valid() and interact_hook.call():
+				person.play("interact", 0.1, 1.3)
+			elif not person.busy():
+				person.play("wave", 0.15)
+
+func facing() -> Vector3:
+	return Vector3(sin(person.rotation.y), 0, cos(person.rotation.y))
+
+func _emit_punch_later() -> void:
+	await get_tree().create_timer(0.22).timeout   # contact frame of the punch
+	punched.emit(global_position, facing())
+
+func set_carrying(on: bool) -> void:
+	if on and _bag == null:
+		# paper delivery bag held at the right side
+		_bag = MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = Vector3(0.26, 0.32, 0.18)
+		var m := StandardMaterial3D.new()
+		m.albedo_color = Color(0.62, 0.45, 0.27)
+		m.roughness = 0.85
+		bm.material = m
+		(_bag as MeshInstance3D).mesh = bm
+		_bag.position = Vector3(-0.3, 0.82, 0.08)
+		person.add_child(_bag)
+	elif not on and _bag != null:
+		_bag.queue_free()
+		_bag = null
+
+func horizontal_speed() -> float:
+	return Vector2(velocity.x, velocity.z).length()
+
+func rolling() -> bool:
+	return _roll_t > 0.0
 
 func _physics_process(delta: float) -> void:
 	var input := Vector2.ZERO

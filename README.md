@@ -15,6 +15,25 @@ No missions (yet). The game *is* the city: real street grid, real street names, 
 | ![Downtown overview](docs/screenshots/m35_overview.png) | ![Mont Royal](docs/screenshots/m35_mountain.png) |
 | ![Old Port](docs/screenshots/m35_oldport.png) | ![Biosphère & Île Sainte-Hélène](docs/screenshots/m35_biosphere.png) |
 
+## New: *Nuit de livraison* — the first game mode
+
+The slice is now a game. You're an on-foot courier working a 6-minute rainy evening shift in Old Montréal.
+
+| | |
+|---|---|
+| ![Title screen](docs/screenshots/game_title.png) | ![Pickup: follow the amber beam](docs/screenshots/game_pickup.png) |
+| ![Delivering: order timer, bag condition, minimap](docs/screenshots/game_dropoff.png) | ![Crossroads of rue Saint-Paul and rue Saint-Vincent](docs/screenshots/slice_corner.png) |
+
+- **Deliver**: orders pop up from the quarter's 24 shops (*trois poutines*, *un bouquet de pivoines*, *une caisse de vinyles*...) for its 52 street addresses. Pick up at the amber beam, deliver to the cyan one, and press **E** at the door.
+- **Get paid**: base pay grows with distance. Tips scale with time left and bag condition. On-time streaks multiply tips, express orders pay double tips on a tighter clock, and the clock tightens as the shift goes on.
+- **Don't wreck the bag**: running into pedestrians or rolling with the bag damages it, and fragile items (wine, vinyl, art) suffer more. Punching passers-by costs a fine.
+- **Au voleur !** Pickpockets strike now and then. They sprint through the street graph away from you; punch or roll into them for a reward before they lose you.
+- **Explore**: 12 gilt fleurs-de-lys are hidden around the quarter, saved across sessions along with your best shift.
+- **The quarter**: rue Saint-Paul, a full rue Saint-Vincent crossing it, and rue de la Commune along the Marché Bonsecours, all sealed by closing buildings. It has blue enamel house numbers, faded painted ads on party walls, and about 34 pedestrians.
+- **Interface**: HUD with cash and clock, an objective card with order timer, an edge-of-screen target pointer, a minimap, and title and end-of-shift screens. Sound cues (order ping, cash chime, police whistle...) are synthesized.
+
+Run `play_slice.bat` and press **Enter** for a shift or **Space** for free roam. Gameplay gate (headless): `SLICE_SAVE=user://test_save.json tools/godot/godot_console.exe --headless --fixed-fps 60 --path game --script res://slice/game_test.gd` → `GAME OK`.
+
 ## New: the Rue Saint-Paul vertical slice
 
 One hand-dressed Old-Montréal street at blue hour, just after rain. It's the new visual bar: content quality first, one location done properly before scaling back up to the whole city.
@@ -62,6 +81,7 @@ HRDEM elevation ┘     offline, deterministic     glTF tiles         runtime
 - [x] **M7** — Polish: procedural audio (engine/footsteps/ambient — synthesized, license-free), kill-plane respawn, one-way streets get white centerlines, facades anchored to real ground height, car & headlight tuning, landmark collision
 - [x] **M8** — Realism Graphics I: procedural sky/water/terrain shaders (fbm clouds & sun disc, analytic waves, grass/dirt/rock blend + dirt paths), CC0 wall/road/sidewalk textures with per-building facade variation, 16,498 OSM trees & 21 benches via a pooled MultiMesh prop renderer, white-car colormap fix
 - [x] **M9** — Realism Graphics II: warm sun/shadow/fog grade (shadow reach, contrast/saturation grade, volumetric night fog), crosswalks & manhole decals & ground-floor doors, fake window interiors & camera-near grass, CC0 player model, storefront awnings, lamp-colormap safety net
+- [x] **Game** — *Nuit de livraison*: courier shifts (orders, timers, tips, streaks, express), pickpocket chases, hidden fleurs-de-lys, HUD/minimap/pointer, saves; the quarter expanded to three streets
 - [x] **Slice** — Rue Saint-Paul vertical slice: procedural Old-Montréal facades with interior-mapped windows, rain-wet cobbles, lamps, pedestrians, a third-person player, ~60 fps (new visual bar; see above)
 - [x] **M10a** — Traffic: pipeline exports a road + sidewalk nav graph (`nav.json`, tiles byte-identical); 40 pooled cars drive real lanes on the right, queue at real signal positions, yield at junctions, brake for you, and collide with your car; pooled headlights at night
 

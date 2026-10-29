@@ -42,6 +42,8 @@ func _resolve_clips() -> void:
 		"roll": ["roll"],
 		"wave": ["wave", "man_clapping"],
 		"interact": ["interact", "pickup"],
+		"hit": ["hitrecieve", "hitrecieve_2"],
+		"death": ["death", "man_death"],
 	}
 	for role in want.keys():
 		for cand in want[role]:

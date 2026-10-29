@@ -40,6 +40,7 @@ var quality := 1
 var _sky_mat: ShaderMaterial
 var _backdrop_mat: ShaderMaterial
 var player: SlicePlayer
+var game: SliceGame
 var peds: SlicePedestrians
 var fly_mode := false
 var _idle_spots: Array = []
@@ -84,11 +85,20 @@ func _ready() -> void:
 	set_quality(1)
 	_set_mood(0)
 	# `-- --tour` starts the cinematic tour (used for the Movie Maker capture)
+	game = SliceGame.new()
+	game.name = "Game"
+	add_child(game)
+	game.setup(self)
+	_help.visible = false
+	# `-- --tour` starts the cinematic tour (used for the Movie Maker capture)
 	if OS.get_cmdline_user_args().has("--tour"):
+		game.start_free()
+		game.hud.visible = false
 		_tour = true
 		_tour_t = 0.0
 		set_fly(true)
-		_help.visible = false
+	else:
+		_title.visible = false
 
 # ================================================================= materials
 
@@ -326,53 +336,115 @@ func _ground_mat(slot: String, tile: float, height: bool, puddles: float, tint :
 	_wet_mats.append(m)
 	return m
 
+# The quarter: rue Saint-Paul (north-south), rue Saint-Vincent crossing it,
+# rue de la Commune along the market. Closing buildings seal every street end.
+const CROSS_C := -52.0                    # cross street centre line (z)
+const CROSS_X := 95.0                     # cross street half-length
+const COMMUNE_Z := Vector2(-114.3, -121.7)  # market-street kerb lines (z)
+const COMMUNE_X := 46.0
+
+# Doors for the delivery game: {pos, kind ("shop"/"home"), name, street, number, item}
+var doors: Array[Dictionary] = []
+var _street_numbers := {}
+var _bollard_kit := MeshKit.new()
+
 func _in_cross(z: float) -> bool:
 	return z < CROSS_Z.x and z > CROSS_Z.y
+
+# True where the ground is roadway (pedestrians step down, cars could drive).
+func on_road(p: Vector3) -> bool:
+	if abs(p.x) < ROAD_HALF and p.z < 45.0 and p.z > COMMUNE_Z.y:
+		return true
+	if abs(p.z - CROSS_C) < ROAD_HALF and abs(p.x) < CROSS_X:
+		return true
+	return p.z < COMMUNE_Z.x and p.z > COMMUNE_Z.y and abs(p.x) < COMMUNE_X
+
+# Crowned cobble strip. along_z: strip runs along Z (crown across X).
+func _road_strip(st: SurfaceTool, a0: float, a1: float, c: float, half: float, along_z: bool, skip: Vector2) -> void:
+	var step := 0.5
+	var n_a := int(abs(a1 - a0) / step)
+	var n_c := int(half * 2.0 / step) + 1
+	var cstep := half * 2.0 / (n_c - 1)
+	var sgn := signf(a1 - a0)
+	for j in n_a:
+		var aa := a0 + sgn * j * step
+		var ab := aa + sgn * step
+		if (aa > skip.x and aa < skip.y) or (ab > skip.x and ab < skip.y):
+			continue
+		for i in n_c - 1:
+			var ca := c - half + i * cstep
+			var cb := ca + cstep
+			var quad := []
+			for q in [[aa, ca], [ab, ca], [ab, cb], [aa, cb]]:
+				var off: float = abs(q[1] - c) / half
+				var y := 0.07 * (1.0 - off * off)
+				var g := smoothstep(0.75, 1.0, off)
+				var v := Vector3(q[1], y, q[0]) if along_z else Vector3(q[0], y, q[1])
+				quad.append([v, g])
+			for idx in [[0, 1, 2], [0, 2, 3]]:
+				var pa: Vector3 = quad[idx[0]][0]
+				var pb: Vector3 = quad[idx[1]][0]
+				var pc: Vector3 = quad[idx[2]][0]
+				var nrm := (pb - pa).cross(pc - pa).normalized()
+				if nrm.y < 0:
+					nrm = -nrm
+				var order: Array = idx if (pb - pa).cross(pc - pa).dot(nrm) < 0 else [idx[0], idx[2], idx[1]]
+				for k in order:
+					st.set_normal(nrm)
+					st.set_color(Color(quad[k][1], 0, 0))
+					st.add_vertex(quad[k][0])
+
+# Raised sidewalk slab [x0,x1]x[z0,z1]; `to_road` points from the slab toward the
+# kerb edge. Granite kerb face + ramped collision so bodies can step up.
+func _sidewalk(kit: MeshKit, x0: float, x1: float, z0: float, z1: float, to_road: Vector2) -> void:
+	var lo := Vector2(minf(x0, x1), minf(z0, z1))
+	var hi := Vector2(maxf(x0, x1), maxf(z0, z1))
+	var y := CURB_H
+	kit.quad("walk", Vector3(lo.x, y, hi.y), Vector3(hi.x, y, hi.y), Vector3(hi.x, y, lo.y), Vector3(lo.x, y, lo.y), Vector3.UP)
+	# all four side faces (granite), the kerb one gets a top edge strip
+	kit.quad("curb", Vector3(lo.x, y, lo.y), Vector3(hi.x, y, lo.y), Vector3(hi.x, 0, lo.y), Vector3(lo.x, 0, lo.y), Vector3.FORWARD)
+	kit.quad("curb", Vector3(lo.x, y, hi.y), Vector3(hi.x, y, hi.y), Vector3(hi.x, 0, hi.y), Vector3(lo.x, 0, hi.y), Vector3.BACK)
+	kit.quad("curb", Vector3(lo.x, y, lo.y), Vector3(lo.x, y, hi.y), Vector3(lo.x, 0, hi.y), Vector3(lo.x, 0, lo.y), Vector3.LEFT)
+	kit.quad("curb", Vector3(hi.x, y, lo.y), Vector3(hi.x, y, hi.y), Vector3(hi.x, 0, hi.y), Vector3(hi.x, 0, lo.y), Vector3.RIGHT)
+	var e := 0.28
+	var strip: Array
+	if to_road.x > 0: strip = [hi.x - e, hi.x, lo.y, hi.y]
+	elif to_road.x < 0: strip = [lo.x, lo.x + e, lo.y, hi.y]
+	elif to_road.y > 0: strip = [lo.x, hi.x, hi.y - e, hi.y]
+	else: strip = [lo.x, hi.x, lo.y, lo.y + e]
+	kit.quad("curb", Vector3(strip[0], y + 0.002, strip[3]), Vector3(strip[1], y + 0.002, strip[3]), Vector3(strip[1], y + 0.002, strip[2]), Vector3(strip[0], y + 0.002, strip[2]), Vector3.UP)
+	var cb := StaticBody3D.new()
+	var ccs := CollisionShape3D.new()
+	var shp := ConvexPolygonShape3D.new()
+	var pts := PackedVector3Array()
+	var r := 0.35
+	for cx in [lo.x, hi.x]:
+		for cz in [lo.y, hi.y]:
+			pts.append(Vector3(cx, y, cz))
+			var gx: float = cx + (r if to_road.x > 0 and cx == hi.x else (-r if to_road.x < 0 and cx == lo.x else 0.0))
+			var gz: float = cz + (r if to_road.y > 0 and cz == hi.y else (-r if to_road.y < 0 and cz == lo.y else 0.0))
+			pts.append(Vector3(gx, 0, gz))
+	shp.points = pts
+	ccs.shape = shp
+	cb.add_child(ccs)
+	add_child(cb)
 
 func _build_ground() -> void:
 	var road := _ground_mat("cobble", 2.2, true, 0.55)
 	var walk := _ground_mat("sidewalk", 1.6, false, 0.25, Color(0.85, 0.85, 0.88))
-	# Cobbled road surface with a crown and gutter puddles (COLOR.r).
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var x0 := -60.0
-	var x1 := 60.0
-	var z0 := 45.0
-	var z1 := -200.0
-	var step := 0.5
-	var nx := int((x1 - x0) / step)
-	var nz := int((z0 - z1) / step)
-	var hfun := func(x: float, z: float) -> float:
-		var main := 0.07 * (1.0 - pow(clampf(abs(x) / ROAD_HALF, 0.0, 1.0), 2.0)) if abs(x) < ROAD_HALF and z > END_Z else 0.0
-		return main
-	var gfun := func(x: float, z: float) -> float:
-		var g := 0.0
-		if z > END_Z:
-			g = smoothstep(ROAD_HALF - 0.9, ROAD_HALF, abs(x))
-		return g
-	for j in nz:
-		for i in nx:
-			var xa := x0 + i * step
-			var xb := xa + step
-			var za := z0 - j * step
-			var zb := za - step
-			var corners := [Vector2(xa, za), Vector2(xb, za), Vector2(xb, zb), Vector2(xa, zb)]
-			var pts: Array[Vector3] = []
-			var cols: Array[Color] = []
-			for c in corners:
-				pts.append(Vector3(c.x, hfun.call(c.x, c.y), c.y))
-				cols.append(Color(gfun.call(c.x, c.y), 0, 0))
-			for idx in [[0, 2, 1], [0, 3, 2]]:
-				var a: Vector3 = pts[idx[0]]
-				var b: Vector3 = pts[idx[1]]
-				var c: Vector3 = pts[idx[2]]
-				var n := (c - a).cross(b - a).normalized()
-				if n.y < 0:
-					n = -n
-				for k in idx:
-					st.set_normal(n)
-					st.set_color(cols[k])
-					st.add_vertex(pts[k])
+	_road_strip(st, 45.0, END_Z, 0.0, ROAD_HALF, true, Vector2(CROSS_C - ROAD_HALF, CROSS_C + ROAD_HALF))
+	_road_strip(st, -CROSS_X, -ROAD_HALF, CROSS_C, ROAD_HALF, false, Vector2(INF, -INF))
+	_road_strip(st, ROAD_HALF, CROSS_X, CROSS_C, ROAD_HALF, false, Vector2(INF, -INF))
+	# flat cobbles everywhere else (intersections, market street), just below the strips
+	var y := -0.004
+	for q in [[Vector3(-130, y, 70), Vector3(130, y, 70), Vector3(130, y, -170), Vector3(-130, y, -170)]]:
+		for idx in [[0, 2, 1], [0, 3, 2]]:
+			for k in idx:
+				st.set_normal(Vector3.UP)
+				st.set_color(Color(0, 0, 0))
+				st.add_vertex(q[k])
 	var mi := MeshInstance3D.new()
 	mi.name = "Road"
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -381,40 +453,22 @@ func _build_ground() -> void:
 	add_child(mi)
 	var body := StaticBody3D.new()
 	var cs := CollisionShape3D.new()
-	var plane := WorldBoundaryShape3D.new()
-	cs.shape = plane
+	cs.shape = WorldBoundaryShape3D.new()
 	body.add_child(cs)
 	add_child(body)
 
-	# Sidewalks + granite curbs along both sides, broken by the cross street.
 	var kit := MeshKit.new()
-	var runs := [[45.0, CROSS_Z.x], [CROSS_Z.y, END_Z]]
+	var fx := FACE_X + 0.3
 	for side in [-1.0, 1.0]:
-		for r in runs:
-			var za: float = r[0]
-			var zb: float = r[1]
-			var xin: float = side * ROAD_HALF
-			var xout: float = side * (FACE_X + 0.3)
-			var lo := minf(xin, xout)
-			var hi := maxf(xin, xout)
-			kit.quad("walk", Vector3(lo, CURB_H, za), Vector3(hi, CURB_H, za), Vector3(hi, CURB_H, zb), Vector3(lo, CURB_H, zb), Vector3.UP)
-			# curb face toward the road + granite edge strip
-			kit.quad("curb", Vector3(xin, CURB_H, za), Vector3(xin, CURB_H, zb), Vector3(xin, 0.0, zb), Vector3(xin, 0.0, za), Vector3(-side, 0, 0))
-			kit.quad("curb", Vector3(xin, CURB_H + 0.002, za), Vector3(xin - side * -0.28, CURB_H + 0.002, za), Vector3(xin - side * -0.28, CURB_H + 0.002, zb), Vector3(xin, CURB_H + 0.002, zb), Vector3.UP)
-			for zz in [za, zb]:
-				kit.quad("curb", Vector3(lo, CURB_H, zz), Vector3(hi, CURB_H, zz), Vector3(hi, 0, zz), Vector3(lo, 0, zz), Vector3(0, 0, signf(zz - (za + zb) * 0.5)))
-			# collision: sidewalk slab with a ramped kerb edge so bodies can step up
-			var cb := StaticBody3D.new()
-			var ccs := CollisionShape3D.new()
-			var shp := ConvexPolygonShape3D.new()
-			var ramp: float = xin - side * 0.35
-			var pts := PackedVector3Array()
-			for zz in [za, zb]:
-				pts.append_array([Vector3(ramp, 0, zz), Vector3(xin, CURB_H, zz), Vector3(xout, CURB_H, zz), Vector3(xout, 0, zz)])
-			shp.points = pts
-			ccs.shape = shp
-			cb.add_child(ccs)
-			add_child(cb)
+		# rue Saint-Paul, both sides, broken by the cross street
+		for r in [[45.0, CROSS_Z.x], [CROSS_Z.y, END_Z]]:
+			_sidewalk(kit, side * ROAD_HALF, side * fx, r[0], r[1], Vector2(-side, 0))
+		# rue Saint-Vincent, north and south kerbs, each half
+		_sidewalk(kit, side * ROAD_HALF, side * CROSS_X, CROSS_Z.x + 0.3, CROSS_C + ROAD_HALF, Vector2(0, -1))
+		_sidewalk(kit, side * ROAD_HALF, side * CROSS_X, CROSS_C - ROAD_HALF, CROSS_Z.y - 0.3, Vector2(0, 1))
+		# rue de la Commune: north kerb (each half) and along the market
+		_sidewalk(kit, side * ROAD_HALF, side * COMMUNE_X, END_Z, COMMUNE_Z.x, Vector2(0, -1))
+	_sidewalk(kit, -COMMUNE_X, COMMUNE_X, COMMUNE_Z.y, MARKET_Z + 0.2, Vector2(0, 1))
 	var smi := MeshInstance3D.new()
 	smi.name = "Sidewalks"
 	smi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -422,6 +476,33 @@ func _build_ground() -> void:
 	add_child(smi)
 
 # ================================================================= buildings
+
+const SHOPS_B := [
+	{"name": "Bagels du Vieux", "blade": "Bagels", "sign": Color(0.2, 0.12, 0.05), "awning": true, "item": "une douzaine de bagels"},
+	{"name": "Fleuriste Les Pivoines", "blade": "Fleurs", "sign": Color(0.3, 0.1, 0.2), "item": "un bouquet de pivoines", "fragile": true},
+	{"name": "Crêperie Bretonne", "blade": "Crêpes", "sign": Color(0.05, 0.15, 0.3), "awning": true, "terrace": true, "item": "des crêpes au sucre d'érable"},
+	{"name": "Pizzeria Napoli", "blade": "Pizza", "sign": Color(0.08, 0.25, 0.1), "font": "res://assets/slice/fonts/JosefinSans.ttf", "item": "deux pizzas"},
+	{"name": "Disquaire 33 Tours", "blade": "Vinyles", "sign": Color(0.06, 0.06, 0.06), "font": "res://assets/slice/fonts/JosefinSans.ttf", "text_col": Color(0.95, 0.4, 0.3), "item": "une caisse de vinyles", "fragile": true},
+	{"name": "Pharmacie du Port", "blade": "+", "sign": Color(0.05, 0.3, 0.15), "font": "res://assets/slice/fonts/JosefinSans.ttf", "text_col": Color(0.95, 1.0, 0.95), "item": "une ordonnance"},
+	{"name": "Bar à Vin Le Cep", "blade": "Vins", "sign": Color(0.3, 0.05, 0.1), "awning": true, "item": "trois bouteilles de vin", "fragile": true},
+	{"name": "Smoked Meat Chez Ben", "blade": "Smoked meat", "sign": Color(0.45, 0.25, 0.05), "font": "res://assets/slice/fonts/JosefinSans.ttf", "item": "deux smoked meat"},
+	{"name": "Salon de Thé Marguerite", "blade": "Thé", "sign": Color(0.15, 0.2, 0.25), "item": "une boîte de thés"},
+	{"name": "Quincaillerie Bonsecours", "blade": "", "sign": Color(0.25, 0.25, 0.27), "font": "res://assets/slice/fonts/JosefinSans.ttf", "item": "un coffre à outils"},
+]
+# what each Saint-Paul shop sends out
+const ITEMS := {
+	"Boulangerie Saint-Paul": "des croissants chauds", "Chocolats Ville-Marie": "une boîte de truffes",
+	"Galerie Lumière": "un tableau encadré", "Café des Voûtes": "quatre cafés au lait",
+	"Fromagerie du Marché": "un plateau de fromages", "Les Sucreries de l'Érable": "de la tire d'érable",
+	"Librairie Bonsecours": "des livres rares", "Brasserie 1642": "une caisse de bières",
+	"Bijouterie Fleur de Lys": "un écrin", "Poutinerie La Ruelle": "trois poutines",
+	"Atelier de Verre": "un vase soufflé", "Taverne du Port": "deux tourtières",
+	"Dépanneur Saint-Paul": "un sac d'épicerie", "Antiquités Calvet": "une lampe ancienne",
+}
+const FRAGILE := ["Galerie Lumière", "Atelier de Verre", "Antiquités Calvet", "Café des Voûtes", "Brasserie 1642"]
+
+var _shop_i := 0
+var _lantern_alt := 0
 
 func _pick_style() -> Dictionary:
 	var r := rng.randf()
@@ -433,79 +514,150 @@ func _pick_style() -> Dictionary:
 		return {"style": "french", "roof": "gable", "floors": rng.randi_range(2, 3)}
 	return {"style": "victorian", "roof": "flat", "floors": rng.randi_range(4, 5)}
 
+func _next_shop(pool: Array):
+	if pool.is_empty():
+		return null
+	var sh: Dictionary = pool.pop_front().duplicate()
+	if not sh.has("item"):
+		sh["item"] = ITEMS.get(sh["name"], "un colis")
+	if FRAGILE.has(sh["name"]):
+		sh["fragile"] = true
+	return sh
+
+# Fill a facade line with buildings. `from`/`to` are points on the facade line
+# (ground level), `outward` faces the street. ww = sidewalk width (furniture).
+func _build_row(from: Vector3, to: Vector3, outward: Vector3, street: String, shop_pool: Array,
+		shop_p: float, ww: float, lanterns := true, wmin := 7.5, wmax := 13.5, style_override := {}) -> void:
+	var dir := (to - from).normalized()
+	var total := from.distance_to(to)
+	var axis_u := Vector3.UP.cross(outward)
+	var done := 0.0
+	while total - done > 4.0:
+		var w := rng.randf_range(wmin, wmax)
+		if total - done - w < 6.0:
+			w = total - done
+		var cur := from + dir * done
+		var origin := cur if dir.dot(axis_u) > 0 else cur + dir * w
+		var s := _pick_style()
+		s.merge(style_override, true)
+		s["origin"] = origin
+		s["outward"] = outward
+		s["width"] = w
+		s["seed"] = rng.randi()
+		s["depth"] = 12.0
+		var tint := Vector3.ONE * rng.randf_range(0.85, 1.1)
+		tint.x *= rng.randf_range(0.96, 1.04)
+		tint.z *= rng.randf_range(0.94, 1.03)
+		s["tint"] = tint
+		var shop = _next_shop(shop_pool) if rng.randf() < shop_p else null
+		s["shop"] = shop
+		var b := SliceBuilding.new(s)
+		b.build()
+		var awn_col := Color(0.1, 0.24, 0.15)
+		if shop != null:
+			awn_col = (shop["sign"] as Color).lightened(0.15)
+		var bm := _building_mats(FRAME_COLS[rng.randi() % FRAME_COLS.size()],
+			CORNICE_COLS[rng.randi() % CORNICE_COLS.size()],
+			shop["sign"] if shop != null else Color(0.1, 0.1, 0.1), awn_col)
+		add_child(b.make_node(bm, "Bldg_%d" % get_child_count()))
+		for l in b.lights:
+			_lamp_lights.append(l as Light3D)
+		if lanterns:
+			_lantern_alt += 1
+			if _lantern_alt % 2 == 0 or w > 11.0:
+				var u := w * (0.15 if rng.randf() < 0.5 else 0.85)
+				_wall_lantern(origin + b.kit.axis_u * u + Vector3.UP * 4.85, outward)
+		if ww > 0.0:
+			_dress_frontage(b, shop, ww)
+		# street number + door for deliveries
+		var num: int = _street_numbers.get(street, 100 + rng.randi_range(0, 30) * 2) + 2 * rng.randi_range(1, 4)
+		_street_numbers[street] = num
+		if b.anchors.has("door"):
+			var dp: Vector3 = b.anchors["door"]
+			dp = Vector3(dp.x, CURB_H, dp.z) + outward * 0.5
+			var d := {"pos": dp, "outward": outward, "street": street, "number": num,
+				"kind": "shop" if shop != null else "home",
+				"name": shop["name"] if shop != null else "%d, %s" % [num, street]}
+			if shop != null:
+				d["item"] = shop["item"]
+				d["fragile"] = shop.get("fragile", false)
+			doors.append(d)
+			_door_number(b, num, outward)
+		done += w
+
+# Small enamel house-number plaque beside the door (Montréal blue).
+func _door_number(b: SliceBuilding, num: int, outward: Vector3) -> void:
+	var dp: Vector3 = b.anchors["door"]
+	var lab := Label3D.new()
+	lab.text = str(num)
+	lab.font = load("res://assets/slice/fonts/JosefinSans.ttf")
+	lab.font_size = 48
+	lab.pixel_size = 0.004
+	lab.modulate = Color(0.95, 0.95, 1.0)
+	lab.outline_modulate = Color(0.08, 0.2, 0.55)
+	lab.outline_size = 22
+	lab.shaded = false
+	lab.double_sided = false
+	var u := Vector3.UP.cross(outward)
+	lab.transform = Transform3D(Basis(u, Vector3.UP, outward), Vector3(dp.x, 2.75, dp.z) + u * 0.95 + outward * 0.02)
+	add_child(lab)
+
 func _build_buildings() -> void:
-	var shop_i := 0
-	var lantern_alt := 0
+	var pool_a: Array = SHOPS.duplicate()
+	var pool_b: Array = SHOPS_B.duplicate()
+	var sp := "rue Saint-Paul Est"
+	var sv := "rue Saint-Vincent"
+	var co := "rue de la Commune"
+	var cn := CROSS_Z.x
+	var cs := CROSS_Z.y
+	# rue Saint-Paul: west then east, north block then south block
+	_build_row(Vector3(-FACE_X, 0, 44.0), Vector3(-FACE_X, 0, cn), Vector3.RIGHT, sp, pool_a, 0.8, FACE_X - ROAD_HALF)
+	_build_row(Vector3(FACE_X, 0, 44.0), Vector3(FACE_X, 0, cn), Vector3.LEFT, sp, pool_a, 0.8, FACE_X - ROAD_HALF)
+	_build_row(Vector3(-FACE_X, 0, cs), Vector3(-FACE_X, 0, END_Z), Vector3.RIGHT, sp, pool_a, 0.75, FACE_X - ROAD_HALF)
+	_build_row(Vector3(FACE_X, 0, cs), Vector3(FACE_X, 0, END_Z), Vector3.LEFT, sp, pool_a, 0.75, FACE_X - ROAD_HALF)
+	# rue Saint-Vincent: corners are owned by the Saint-Paul rows (12 m deep)
+	var c0 := FACE_X + 12.0
+	var ww := CROSS_Z.x - (CROSS_C + ROAD_HALF)
 	for side in [-1.0, 1.0]:
-		var spans := [[44.0, CROSS_Z.x], [CROSS_Z.y, END_Z - 1.0]]
-		for sp in spans:
-			var z: float = sp[0]
-			var zend: float = sp[1]
-			while z - zend > 5.0:
-				var w := rng.randf_range(7.5, 13.5)
-				if z - w - zend < 6.0:
-					w = z - zend
-				var s := _pick_style()
-				var origin: Vector3
-				var outward: Vector3
-				if side < 0:
-					origin = Vector3(-FACE_X, 0, z)
-					outward = Vector3.RIGHT
-				else:
-					origin = Vector3(FACE_X, 0, z - w)
-					outward = Vector3.LEFT
-				s["origin"] = origin
-				s["outward"] = outward
-				s["width"] = w
-				s["seed"] = rng.randi()
-				s["depth"] = 12.0
-				var tint := Vector3.ONE * rng.randf_range(0.85, 1.1)
-				tint.x *= rng.randf_range(0.96, 1.04)
-				tint.z *= rng.randf_range(0.94, 1.03)
-				s["tint"] = tint
-				var shop = null
-				if rng.randf() < 0.78:
-					shop = SHOPS[shop_i % SHOPS.size()].duplicate()
-					shop_i += 1
-				s["shop"] = shop
-				var b := SliceBuilding.new(s)
-				b.build()
-				var awn_col := Color(0.1, 0.24, 0.15)
-				if shop != null:
-					awn_col = (shop["sign"] as Color).lightened(0.15)
-				var bm := _building_mats(FRAME_COLS[rng.randi() % FRAME_COLS.size()],
-					CORNICE_COLS[rng.randi() % CORNICE_COLS.size()],
-					shop["sign"] if shop != null else Color(0.1, 0.1, 0.1), awn_col)
-				var node := b.make_node(bm, "Bldg_%d" % get_child_count())
-				add_child(node)
-				for l in b.lights:
-					_lamp_lights.append(l as Light3D)
-				# wall lanterns between ground floor and first floor
-				lantern_alt += 1
-				if lantern_alt % 2 == 0 or w > 11.0:
-					var u := w * (0.15 if rng.randf() < 0.5 else 0.85)
-					_wall_lantern(origin + b.kit.axis_u * u + Vector3.UP * 4.85, outward)
-				_dress_frontage(b, shop, side)
-				z -= w
-	# Buildings lining the cross street (both ways) so the gap reads as a street.
+		_build_row(Vector3(side * c0, 0, cn), Vector3(side * CROSS_X, 0, cn), Vector3.FORWARD, sv, pool_b, 0.5, ww)
+		_build_row(Vector3(side * c0, 0, cs), Vector3(side * CROSS_X, 0, cs), Vector3.BACK, sv, pool_b, 0.5, ww)
+		# rue de la Commune, north side
+		_build_row(Vector3(side * c0, 0, END_Z), Vector3(side * COMMUNE_X, 0, END_Z), Vector3.FORWARD, co, [], 0.0, END_Z - COMMUNE_Z.x)
+	# closing buildings: north end of Saint-Paul, both ends of Saint-Vincent and of la Commune
+	_build_row(Vector3(-17.6, 0, 45.6), Vector3(17.6, 0, 45.6), Vector3.FORWARD, sp, [], 0.0, 0.0, true, 11.0, 13.0)
+	for side in [-1.0, 1.0]:
+		_build_row(Vector3(side * (CROSS_X + 0.2), 0, cn + 12.0), Vector3(side * (CROSS_X + 0.2), 0, cs - 12.0), Vector3(-side, 0, 0), sv, [], 0.0, 0.0, true, 11.0, 13.0)
+		_build_row(Vector3(side * (COMMUNE_X + 0.2), 0, END_Z), Vector3(side * (COMMUNE_X + 0.2), 0, MARKET_Z), Vector3(-side, 0, 0), co, [], 0.0, 0.0, false, 12.0, 12.0)
+	_ghost_signs()
+	var bmi := MeshInstance3D.new()
+	bmi.name = "Bollards"
+	bmi.mesh = _bollard_kit.commit({"metal": mats["metal"]})
+	add_child(bmi)
+
+# Faded painted advertisements on the blank party walls facing rue Saint-Vincent.
+func _ghost_signs() -> void:
+	var texts := [["SAVON CASTOR", "DEPUIS 1898"], ["FARINE DU PORT", "MOULUE À MONTRÉAL"], ["TABAC & JOURNAUX", "OUVERT TARD"], ["CHAPEAUX LAVOIE", "ET FOURRURES"]]
+	var k := 0
 	for sx in [-1.0, 1.0]:
-		for sz in [-1.0, 1.0]:
-			var x0: float = sx * FACE_X
-			var face_z := CROSS_Z.x if sz > 0 else CROSS_Z.y
+		for sz in [1.0, -1.0]:
+			var z := CROSS_Z.x if sz > 0 else CROSS_Z.y
 			var outward := Vector3(0, 0, -sz)
-			var u_dir := Vector3.UP.cross(outward)
-			var xstart: float = x0 if (u_dir.x * sx) > 0 else x0 + sx * 30.0
-			var s := _pick_style()
-			s["origin"] = Vector3(xstart, 0, face_z)
-			s["outward"] = outward
-			s["width"] = 30.0
-			s["seed"] = rng.randi()
-			s["depth"] = 10.0
-			s["tint"] = Vector3.ONE * rng.randf_range(0.85, 1.05)
-			s["shop"] = null
-			var b2 := SliceBuilding.new(s)
-			b2.build()
-			add_child(b2.make_node(_building_mats(FRAME_COLS[rng.randi() % 5], CORNICE_COLS[rng.randi() % 5], Color.BLACK, Color.BLACK), "Cross_%d" % get_child_count()))
+			var u := Vector3.UP.cross(outward)
+			var center := Vector3(sx * (FACE_X + 6.0), 6.5, z + outward.z * 0.03)
+			for line in 2:
+				var lab := Label3D.new()
+				lab.text = texts[k][line]
+				lab.font = load("res://assets/slice/fonts/JosefinSans.ttf" if line == 0 else "res://assets/slice/fonts/PlayfairDisplay.ttf")
+				lab.font_size = 160 if line == 0 else 96
+				lab.pixel_size = 0.0075
+				lab.modulate = Color(0.85, 0.82, 0.72, 0.42)
+				lab.shaded = true
+				lab.double_sided = false
+				lab.transparency = 0.0
+				lab.alpha_cut = Label3D.ALPHA_CUT_DISABLED
+				lab.transform = Transform3D(Basis(u, Vector3.UP, outward), center + Vector3.UP * (0.9 - line * 1.8))
+				add_child(lab)
+			k += 1
 
 func _wall_lantern(pos: Vector3, outward: Vector3) -> void:
 	var inst := _model("street_lamp_02")
@@ -561,7 +713,7 @@ func _place(id: String, pos: Vector3, yaw: float, keep := "", scale := 1.0) -> N
 	add_child(m)
 	return m
 
-func _dress_frontage(b: SliceBuilding, shop, side: float) -> void:
+func _dress_frontage(b: SliceBuilding, shop, ww: float) -> void:
 	var o: Vector3 = b.spec["origin"]
 	var U := b.kit.axis_u
 	var N := b.kit.axis_n
@@ -599,7 +751,7 @@ func _dress_frontage(b: SliceBuilding, shop, side: float) -> void:
 		_place("planter_box_01", o + U * (w * 0.5) + N * 0.25 + Vector3.UP * y, yaw_out + PI * 0.5)
 	# curb-side street furniture
 	var cr := rng.randf()
-	var curb_p := o + U * rng.randf_range(1.0, w - 1.0) + N * (FACE_X - ROAD_HALF - 0.45) + Vector3.UP * y
+	var curb_p := o + U * rng.randf_range(1.0, w - 1.0) + N * (ww - 0.45) + Vector3.UP * y
 	if cr < 0.18:
 		_place("fire_hydrant", curb_p, yaw_out, "fire_hydrant*")
 		for c in get_child(get_child_count() - 1).get_children():
@@ -612,16 +764,12 @@ func _dress_frontage(b: SliceBuilding, shop, side: float) -> void:
 	# bollards
 	if rng.randf() < 0.6:
 		for k in 2:
-			_bollard(o + U * (w * (0.3 + 0.4 * k)) + N * (FACE_X - ROAD_HALF - 0.3) + Vector3.UP * y)
+			_bollard(o + U * (w * (0.3 + 0.4 * k)) + N * (ww - 0.3) + Vector3.UP * y)
 
 func _bollard(p: Vector3) -> void:
-	var kit := MeshKit.new()
 	var prof := [Vector2(0.0, 0.0), Vector2(0.13, 0.0), Vector2(0.13, 0.06), Vector2(0.1, 0.1), Vector2(0.09, 0.75),
 		Vector2(0.11, 0.78), Vector2(0.11, 0.84), Vector2(0.08, 0.88), Vector2(0.06, 0.95), Vector2(0.0, 0.98)]
-	kit.lathe("metal", Transform3D(Basis(), p), prof, 18)
-	var mi := MeshInstance3D.new()
-	mi.mesh = kit.commit({"metal": mats["metal"]})
-	add_child(mi)
+	_bollard_kit.lathe("metal", Transform3D(Basis(), p), prof, 14)
 
 # ================================================================= string lights
 
@@ -804,10 +952,13 @@ func _build_backdrop() -> void:
 			var bd := r.randf_range(14.0, 26.0)
 			var cx := x + bw * 0.5
 			var cz := z + bd * 0.5
-			var near_street: bool = abs(cx) < 18.0 + bw * 0.5 + 2.0 and cz > MARKET_Z - 30.0 and cz < 60.0
-			var on_cross: bool = abs(cz - (CROSS_Z.x + CROSS_Z.y) * 0.5) < bd * 0.5 + 9.0 and abs(cx) < 48.0
-			var behind_market: bool = abs(cx) < 70.0 and cz < MARKET_Z and cz > MARKET_Z - 90.0
-			if not near_street and not on_cross and not behind_market:
+			var reserved := [Rect2(-19, -114, 38, 174), Rect2(-110, -72, 220, 40), Rect2(-50, -127, 100, 30), Rect2(-52, -152, 104, 30)]
+			var me := Rect2(cx - bw * 0.5, cz - bd * 0.5, bw, bd)
+			var free := true
+			for rr in reserved:
+				if (rr as Rect2).grow(1.0).intersects(me):
+					free = false
+			if free:
 				var h := r.randf_range(11.0, 20.0)
 				if r.randf() < 0.06 and abs(cx) > 60.0:
 					h = r.randf_range(26.0, 40.0)
@@ -827,30 +978,45 @@ func _build_pole_lamps() -> void:
 	var kit := MeshKit.new()
 	var prof := [Vector2(0.0, 0.0), Vector2(0.2, 0.0), Vector2(0.2, 0.12), Vector2(0.16, 0.2), Vector2(0.16, 0.55),
 		Vector2(0.12, 0.62), Vector2(0.075, 0.75), Vector2(0.06, 3.5), Vector2(0.09, 3.6), Vector2(0.09, 3.7), Vector2(0.05, 3.78), Vector2(0.05, 4.3), Vector2(0.0, 4.35)]
+	var spots: Array = []   # [base, toward-road]
 	var z := 34.0
 	var side := 1.0
 	while z > END_Z + 4.0:
-		if not (z < CROSS_Z.x + 2.0 and z > CROSS_Z.y - 2.0):
-			var base := Vector3(side * (ROAD_HALF + 0.42), CURB_H, z)
-			kit.lathe("metal", Transform3D(Basis(), base), prof, 16, 12, 0.08)
-			var head := _model("street_lamp_02")
-			var outward := Vector3(-side, 0, 0)
-			head.transform = Transform3D(Basis.looking_at(-outward, Vector3.UP), base + Vector3.UP * 4.15 - outward * 0.05)
-			add_child(head)
-			_make_glow(head)
-			var l := OmniLight3D.new()
-			l.light_color = Color(1.0, 0.7, 0.42)
-			l.light_energy = 4.5
-			l.omni_range = 15.0
-			l.omni_attenuation = 1.15
-			l.shadow_enabled = true
-			l.shadow_blur = 1.5
-			l.light_volumetric_fog_energy = 1.4
-			l.position = Vector3(0, 0.67, 0.61)
-			head.add_child(l)
-			_lamp_lights.append(l)
+		if abs(z - CROSS_C) > 8.0:
+			spots.append([Vector3(side * (ROAD_HALF + 0.42), CURB_H, z), Vector3(-side, 0, 0)])
 		z -= 17.0
 		side = -side
+	for hx in [-1.0, 1.0]:
+		var x := 14.0
+		var north := true
+		while x < CROSS_X - 6.0:
+			var kz := (CROSS_C + ROAD_HALF + 0.42) if north else (CROSS_C - ROAD_HALF - 0.42)
+			spots.append([Vector3(hx * x, CURB_H, kz), Vector3(0, 0, -1.0 if north else 1.0)])
+			x += 17.0
+			north = not north
+	for x in [-38.0, -22.0, 22.0, 38.0]:
+		spots.append([Vector3(x, CURB_H, COMMUNE_Z.x + 0.42), Vector3(0, 0, -1)])
+	for x in [-30.0, -14.0, 14.0, 30.0]:
+		spots.append([Vector3(x, CURB_H, COMMUNE_Z.y - 0.42), Vector3(0, 0, 1)])
+	for sp in spots:
+		var base: Vector3 = sp[0]
+		var outward: Vector3 = sp[1] * -1.0
+		kit.lathe("metal", Transform3D(Basis(), base), prof, 16, 12, 0.08)
+		var head := _model("street_lamp_02")
+		head.transform = Transform3D(Basis.looking_at(-outward, Vector3.UP), base + Vector3.UP * 4.15 - outward * 0.05)
+		add_child(head)
+		_make_glow(head)
+		var l := OmniLight3D.new()
+		l.light_color = Color(1.0, 0.7, 0.42)
+		l.light_energy = 4.5
+		l.omni_range = 15.0
+		l.omni_attenuation = 1.15
+		l.shadow_enabled = true
+		l.shadow_blur = 1.5
+		l.light_volumetric_fog_energy = 1.4
+		l.position = Vector3(0, 0.67, 0.61)
+		head.add_child(l)
+		_lamp_lights.append(l)
 	var mi := MeshInstance3D.new()
 	mi.name = "LampPosts"
 	mi.mesh = kit.commit({"metal": mats["metal"]})
@@ -1030,6 +1196,8 @@ func _build_hud() -> void:
 	_hud.add_child(_help)
 
 func show_hud(on: bool) -> void:
+	if game != null:
+		game.hud.visible = on
 	_hud.visible = on
 
 func _update_hud(delta: float) -> void:
@@ -1124,8 +1292,23 @@ func _spawn_people() -> void:
 	player.camera.current = true
 	peds = SlicePedestrians.new()
 	peds.player = player
+	peds.on_road = on_road
+	var wx := (ROAD_HALF + FACE_X) * 0.5
+	var nz := (CROSS_Z.x + CROSS_C + ROAD_HALF) * 0.5
+	var sz := (CROSS_Z.y + CROSS_C - ROAD_HALF) * 0.5
+	var cn := (END_Z + COMMUNE_Z.x) * 0.5
+	var cs := (COMMUNE_Z.y + MARKET_Z) * 0.5
+	peds.segments = [
+		[Vector3(-wx, 0, 43.0), Vector3(-wx, 0, -110.0)], [Vector3(wx, 0, 43.0), Vector3(wx, 0, -110.0)],
+		[Vector3(-92.0, 0, nz), Vector3(92.0, 0, nz)], [Vector3(-92.0, 0, sz), Vector3(92.0, 0, sz)],
+		[Vector3(-44.0, 0, cn), Vector3(44.0, 0, cn)],
+		[Vector3(-44.0, 0, cs), Vector3(-10.0, 0, cs)], [Vector3(10.0, 0, cs), Vector3(44.0, 0, cs)],
+	]
+	peds.graph = {"N": Vector3(0, 0, 40), "X": Vector3(0, 0, CROSS_C), "S": Vector3(0, 0, -118),
+		"W": Vector3(-92, 0, CROSS_C), "E": Vector3(92, 0, CROSS_C), "CW": Vector3(-43, 0, -118), "CE": Vector3(43, 0, -118)}
+	peds.edges = {"N": ["X"], "X": ["N", "S", "W", "E"], "S": ["X", "CW", "CE"], "W": ["X"], "E": ["X"], "CW": ["S"], "CE": ["S"]}
 	add_child(peds)
-	peds.spawn(18, _idle_spots)
+	peds.spawn(34, _idle_spots)
 
 func set_fly(on: bool) -> void:
 	fly_mode = on
@@ -1174,6 +1357,7 @@ func _unhandled_input(e: InputEvent) -> void:
 			KEY_3:
 				_set_mood(2)
 			KEY_H:
+				_help.visible = true
 				_help.modulate.a = 1.0 if _help.modulate.a < 0.5 else 0.0
 				_hud_t = 0.0
 			KEY_F5:
