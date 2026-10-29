@@ -12,3 +12,8 @@ game/assets/models/props/hydrant_Zombie_Atlas.png
 .pytest_cache/
 .superpowers/
 *.log
+
+# Slice CC0 downloads (restore with: .venv/Scripts/python -m pipeline.slice_assets)
+game/assets/slice/tex/
+game/assets/slice/models/
+game/assets/slice/hdri/
