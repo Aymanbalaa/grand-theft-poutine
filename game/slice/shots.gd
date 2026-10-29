@@ -23,6 +23,7 @@ func _init() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	for i in 30:
 		await process_frame
+	root.call("show_hud", false)
 	for pose in POSES:
 		if only != "" and not only.split(",").has(pose["name"]):
 			continue

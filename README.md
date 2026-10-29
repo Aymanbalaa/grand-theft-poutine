@@ -15,6 +15,26 @@ No missions (yet). The game *is* the city: real street grid, real street names, 
 | ![Downtown overview](docs/screenshots/m35_overview.png) | ![Mont Royal](docs/screenshots/m35_mountain.png) |
 | ![Old Port](docs/screenshots/m35_oldport.png) | ![Biosphère & Île Sainte-Hélène](docs/screenshots/m35_biosphere.png) |
 
+## New: the Rue Saint-Paul vertical slice
+
+One hand-dressed Old-Montréal street at blue hour, just after rain. It's the new visual bar: content quality first, one location done properly before scaling back up to the whole city.
+
+| | |
+|---|---|
+| ![Rue Saint-Paul, blue hour](docs/screenshots/slice_hero.png) | ![Marché Bonsecours dome at the end of the street](docs/screenshots/slice_dome.png) |
+| ![Café terrace and string lights](docs/screenshots/slice_cafe.png) | ![On foot, third person](docs/screenshots/slice_onfoot.png) |
+| ![Boulangerie storefront](docs/screenshots/slice_storefront.png) | ![Overcast day mood](docs/screenshots/slice_day.png) |
+
+- **Procedural facades with real depth**: greystone, red-brick, French-régime (rubble walls, steep roofs, firewalls, shutters) and Victorian styles. Real window openings with stone reveals, casement frames and muntins, cornices with modillions, mansards with dormers, chimneys. Every window shows an interior-mapped room (parallax walls, pendant lamps, curtains, TV flicker), and shops show shelving and display tables.
+- **Wet street**: world-space PBR cobbles (Poly Haven CC0) with puddles that pool in the stone gaps and gutters, animated rain ripples, and screen-space reflections of every lamp and shop window.
+- **Light**: wall lanterns, cast-iron kerb lamps, café string lights, glowing shopfronts, a floodlit Marché Bonsecours dome closing the vista, volumetric fog, SDFGI, and AgX tonemapping. Three moods: blue hour, night, overcast day.
+- **Life**: umbrella-carrying pedestrians, window-shoppers, a third-person player who can walk, run, roll, punch and wave (CC0 Quaternius characters), steaming manholes, cars under tarps, and synthesized rain, drip and footstep audio.
+- **~60 fps at 1080p** on an RX 6700S laptop (High preset; F5 cycles Medium/High/Ultra). Only the 5 lamps nearest the camera render shadow maps.
+
+Run it: `.venv/Scripts/python -m pipeline.slice_assets` once (fetches the gitignored CC0 assets, hash-verified), then `play_slice.bat`.
+Controls: WASD walk · Shift run · Space roll · LMB punch · E wave · V fly-cam · Tab cinematic tour · 1/2/3 mood · R rain · F5 quality · H help.
+Screenshots: `tools/godot/godot_console.exe --path game --resolution 1920x1080 --script res://slice/shots.gd`. Fly-through video: `... res://slice/slice.tscn --write-movie out.avi --fixed-fps 30 -- --tour`.
+
 ## How it works
 
 Two halves, joined by a data contract:
@@ -42,6 +62,7 @@ HRDEM elevation ┘     offline, deterministic     glTF tiles         runtime
 - [x] **M7** — Polish: procedural audio (engine/footsteps/ambient — synthesized, license-free), kill-plane respawn, one-way streets get white centerlines, facades anchored to real ground height, car & headlight tuning, landmark collision
 - [x] **M8** — Realism Graphics I: procedural sky/water/terrain shaders (fbm clouds & sun disc, analytic waves, grass/dirt/rock blend + dirt paths), CC0 wall/road/sidewalk textures with per-building facade variation, 16,498 OSM trees & 21 benches via a pooled MultiMesh prop renderer, white-car colormap fix
 - [x] **M9** — Realism Graphics II: warm sun/shadow/fog grade (shadow reach, contrast/saturation grade, volumetric night fog), crosswalks & manhole decals & ground-floor doors, fake window interiors & camera-near grass, CC0 player model, storefront awnings, lamp-colormap safety net
+- [x] **Slice** — Rue Saint-Paul vertical slice: procedural Old-Montréal facades with interior-mapped windows, rain-wet cobbles, lamps, pedestrians, a third-person player, ~60 fps (new visual bar; see above)
 - [x] **M10a** — Traffic: pipeline exports a road + sidewalk nav graph (`nav.json`, tiles byte-identical); 40 pooled cars drive real lanes on the right, queue at real signal positions, yield at junctions, brake for you, and collide with your car; pooled headlights at night
 
 ## Run it

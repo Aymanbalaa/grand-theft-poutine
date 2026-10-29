@@ -47,6 +47,18 @@ Committed as `game/assets/models/props/hydrant.glb`. Downloaded 2026-07-23.
 
 Full provenance and per-file mapping: [`game/assets/models/props/SOURCE.md`](game/assets/models/props/SOURCE.md).
 
+## Rue Saint-Paul slice assets
+
+Fetched by `pipeline/slice_assets.py` (gitignored, hash-verified). Pinned IDs: `game/assets/slice/SOURCE.json`.
+
+**Poly Haven** (https://polyhaven.com): textures `cobblestone_floor_001`, `stone_wall_05`, `old_stone_wall`, `red_brick_03`, `sandstone_blocks_05`, `granite_tile_04`, `roof_slates_03`, `wood_peeling_paint_weathered`; models `street_lamp_02`, `outdoor_table_chair_set_01`, `planter_box_01`, `potted_plant_02`, `fire_hydrant`, `metal_trash_can`, `painted_wooden_bench`, `wine_barrel_01`, `wooden_crate_02`, `covered_car`, `shrub_02`, `Lantern_01`, `round_wooden_table_01`, `bar_chair_round_01`, `utility_box_01`; HDRIs `rooftop_night`, `cobblestone_street_night`. All [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+
+**Quaternius** (https://quaternius.com), via poly.pizza: six animated characters (Casual Character, three Animated Women, Man, Adventurer). [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/).
+
+**Fonts**: Playfair Display and Josefin Sans (Google Fonts), [SIL Open Font License 1.1](https://openfontlicense.org). The license texts ship in `game/assets/slice/fonts/`.
+
+Slice audio (rain, drips, wet footsteps) is synthesized by `pipeline/slice_audio.py`. No recorded assets.
+
 ## Engine
 
 **Godot Engine** — https://godotengine.org/

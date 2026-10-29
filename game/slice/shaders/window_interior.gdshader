@@ -55,9 +55,25 @@ void fragment() {
 		col = wallc;
 		// pictures / shelves on the back wall
 		if (shop) {
-			float band = step(0.5, fract(hit.y * 2.2)) * step(0.3, hit.y) * step(hit.y, ceil_h - 0.6);
-			float item = hash(floor(hit.x * 4.0) + floor(hit.y * 2.2) * 31.0 + seed * 101.0);
-			col = mix(col * 0.8, mix(mix(vec3(0.9, 0.25, 0.15), vec3(0.95, 0.8, 0.35), item), vec3(0.3, 0.55, 0.85), step(0.85, item)) * (0.6 + item), band * step(0.35, item));
+			// wall shelving: dark wood boards every 0.45 m, stocked with goods of
+			// varied width/height in a muted palette (loaves, jars, bottles, boxes)
+			float sy = (hit.y - 0.1) / 0.45;
+			float row = floor(sy);
+			float fy = fract(sy);
+			bool in_unit = hit.y > 0.1 && hit.y < ceil_h - 0.7 && abs(hit.x - (bmin.x + bmax.x) * 0.5) < (bmax.x - bmin.x) * 0.42;
+			if (in_unit) {
+				vec3 wood = vec3(0.2, 0.12, 0.07);
+				float cw = 0.11 + 0.1 * hash(row * 7.0 + seed * 3.0);
+				float cell = floor(hit.x / cw);
+				float fx = fract(hit.x / cw);
+				float h = hash(cell * 13.0 + row * 71.0 + seed * 101.0);
+				float k = hash(cell * 5.0 + row * 17.0 + seed * 19.0);
+				vec3 goods[5] = vec3[](vec3(0.55, 0.32, 0.14), vec3(0.7, 0.45, 0.12), vec3(0.18, 0.32, 0.2), vec3(0.75, 0.68, 0.55), vec3(0.45, 0.12, 0.1));
+				vec3 g = goods[int(floor(k * 4.999))] * (0.75 + 0.5 * h);
+				float item_h = 0.35 + 0.5 * h;
+				bool has = h > 0.18 && fx > 0.08 && fx < 0.92 && fy > 0.08 && fy < 0.08 + item_h * 0.85;
+				col = fy < 0.08 ? wood * 1.3 : (has ? g : wood * 0.8);
+			}
 		} else {
 			vec2 fc = vec2(hit.x - (bmin.x + bmax.x) * 0.5 + hash(seed) - 0.5, hit.y - 1.5);
 			float frame = step(abs(fc.x), 0.45) * step(abs(fc.y), 0.32) * step(0.4, hash(seed * 5.0));
@@ -66,7 +82,7 @@ void fragment() {
 	} else if (t == tmax.y) {
 		if (rd.y < 0.0) {
 			float plank = hash(floor(hit.x * 5.0 + floor(hit.z * 0.8) * 3.0));
-			col = shop ? vec3(0.42, 0.36, 0.3) * (0.85 + 0.15 * step(0.5, fract(hit.x * 2.0 + 0.5 * step(0.5, fract(hit.z * 2.0)))))
+			col = shop ? vec3(0.2, 0.16, 0.12) * (0.85 + 0.15 * step(0.5, fract(hit.x * 2.0 + 0.5 * step(0.5, fract(hit.z * 2.0)))))
 				: vec3(0.34, 0.2, 0.11) * (0.8 + 0.4 * plank);
 		} else {
 			col = vec3(0.9, 0.88, 0.84);
@@ -99,9 +115,14 @@ void fragment() {
 			float tt = (ty - p.y) / rd.y;
 			vec3 q = p + rd * tt;
 			if (tt > 0.0 && tt < t_eff && q.x > cx0 && q.x < cx1 && q.z > z0 && q.z < z1) {
-				float item = hash(floor(q.x * 3.0) * 7.0 + floor(q.z * 3.0) + seed * 11.0);
-				vec3 tc = mix(vec3(0.3, 0.18, 0.1), mix(vec3(0.85, 0.55, 0.25), vec3(0.9, 0.85, 0.75), item), step(0.45, item));
-				interior = tc * light_col * glow * 0.9;
+				// dark wood top with a few goods laid out (round loaves / boxes)
+				vec2 gq = q.xz * vec2(3.2, 3.2);
+				vec2 gc = floor(gq);
+				vec2 gf = fract(gq) - 0.5;
+				float item = hash(gc.x * 7.0 + gc.y * 13.0 + seed * 11.0);
+				float blob = step(length(gf * vec2(1.0, 1.6)), 0.3) * step(0.5, item);
+				vec3 tc = mix(vec3(0.17, 0.1, 0.055), mix(vec3(0.62, 0.38, 0.16), vec3(0.7, 0.62, 0.48), step(0.8, item)), blob);
+				interior = tc * light_col * glow * 0.7;
 				t_eff = tt;
 			}
 		}

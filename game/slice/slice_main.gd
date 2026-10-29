@@ -77,9 +77,18 @@ func _ready() -> void:
 	_build_post()
 	_setup_camera()
 	_spawn_people()
+	_build_street_extras()
+	_build_audio()
+	_build_hud()
 	_fade_lights()
 	set_quality(1)
 	_set_mood(0)
+	# `-- --tour` starts the cinematic tour (used for the Movie Maker capture)
+	if OS.get_cmdline_user_args().has("--tour"):
+		_tour = true
+		_tour_t = 0.0
+		set_fly(true)
+		_help.visible = false
 
 # ================================================================= materials
 
@@ -877,6 +886,158 @@ func _assign_shadows(from: Vector3) -> void:
 	for i in sorted.size():
 		(sorted[i] as OmniLight3D).shadow_enabled = i < shadow_budget
 
+# ================================================================= extras
+
+func _build_street_extras() -> void:
+	# Steaming manholes (it's Montréal) and cars under tarps along the kerb.
+	var mtex := load("res://assets/textures/pbr/manhole_alb.png") as Texture2D
+	for mp in [Vector3(1.1, 0.07, -6.0), Vector3(-1.3, 0.07, -84.0)]:
+		var dec := Decal.new()
+		dec.texture_albedo = mtex
+		dec.size = Vector3(0.9, 0.4, 0.9)
+		dec.position = mp
+		add_child(dec)
+		var steam := GPUParticles3D.new()
+		steam.amount = 48
+		steam.lifetime = 5.0
+		steam.preprocess = 5.0
+		var pm := ParticleProcessMaterial.new()
+		pm.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+		pm.emission_sphere_radius = 0.3
+		pm.direction = Vector3(0.15, 1, 0)
+		pm.spread = 12.0
+		pm.initial_velocity_min = 0.35
+		pm.initial_velocity_max = 0.7
+		pm.gravity = Vector3(0.05, 0.12, 0)
+		pm.damping_min = 0.05
+		pm.damping_max = 0.1
+		var sc := Curve.new()
+		sc.max_value = 3.0
+		sc.add_point(Vector2(0, 0.4))
+		sc.add_point(Vector2(1, 2.6))
+		var sct := CurveTexture.new()
+		sct.curve = sc
+		pm.scale_curve = sct
+		var grad := Gradient.new()
+		grad.set_color(0, Color(1, 1, 1, 0.0))
+		grad.set_color(1, Color(1, 1, 1, 0.0))
+		grad.add_point(0.15, Color(1, 1, 1, 1))
+		grad.add_point(0.6, Color(1, 1, 1, 0.5))
+		var gt := GradientTexture1D.new()
+		gt.gradient = grad
+		pm.color_ramp = gt
+		steam.process_material = pm
+		var q := QuadMesh.new()
+		q.size = Vector2(1.1, 1.1)
+		var sm := StandardMaterial3D.new()
+		sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		sm.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		sm.vertex_color_use_as_albedo = true
+		sm.albedo_color = Color(0.8, 0.82, 0.86, 0.09)
+		var puff := GradientTexture2D.new()
+		var pg := Gradient.new()
+		pg.set_color(0, Color(1, 1, 1, 1))
+		pg.set_color(1, Color(1, 1, 1, 0))
+		puff.gradient = pg
+		puff.fill = GradientTexture2D.FILL_RADIAL
+		puff.fill_from = Vector2(0.5, 0.5)
+		puff.fill_to = Vector2(0.5, 0.0)
+		sm.albedo_texture = puff
+		sm.proximity_fade_enabled = true
+		sm.proximity_fade_distance = 0.6
+		sm.disable_receive_shadows = true
+		q.material = sm
+		steam.draw_pass_1 = q
+		steam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		steam.position = mp
+		add_child(steam)
+	for cz in [-17.5, -36.0, -95.0]:
+		var side := 1.0 if cz != -36.0 else -1.0
+		var car := _place("covered_car", Vector3(side * (ROAD_HALF - 1.05), 0.0, cz), rng.randf_range(-0.03, 0.03))
+		var cb := StaticBody3D.new()
+		var cs := CollisionShape3D.new()
+		var bx := BoxShape3D.new()
+		bx.size = Vector3(1.8, 1.4, 4.4)
+		cs.shape = bx
+		cs.position = Vector3(0, 0.7, 0)
+		cb.add_child(cs)
+		car.add_child(cb)
+
+# ================================================================= audio & HUD
+
+func _loop_wav(path: String) -> AudioStreamWAV:
+	var st := load(path) as AudioStreamWAV
+	st.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	st.loop_begin = 0
+	st.loop_end = int(st.get_length() * st.mix_rate)
+	return st
+
+func _build_audio() -> void:
+	var r := AudioStreamPlayer.new()
+	r.stream = _loop_wav("res://assets/slice/audio/rain.wav")
+	r.volume_db = -9.0
+	r.autoplay = true
+	r.name = "RainAudio"
+	add_child(r)
+	var d := AudioStreamPlayer.new()
+	d.stream = _loop_wav("res://assets/slice/audio/drips.wav")
+	d.volume_db = -15.0
+	d.autoplay = true
+	add_child(d)
+	var c := AudioStreamPlayer.new()
+	c.stream = _loop_wav("res://assets/audio/ambient.wav")
+	c.volume_db = -20.0
+	c.autoplay = true
+	add_child(c)
+
+var _hud: CanvasLayer
+var _title: Control
+var _help: Label
+var _hud_t := 0.0
+
+func _build_hud() -> void:
+	_hud = CanvasLayer.new()
+	_hud.layer = 5
+	add_child(_hud)
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_title = box
+	var t1 := Label.new()
+	t1.text = "Rue Saint-Paul"
+	t1.add_theme_font_override("font", load("res://assets/slice/fonts/PlayfairDisplay.ttf"))
+	t1.add_theme_font_size_override("font_size", 84)
+	t1.add_theme_color_override("font_color", Color(1.0, 0.93, 0.8))
+	t1.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.6))
+	t1.add_theme_constant_override("shadow_offset_y", 3)
+	t1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var t2 := Label.new()
+	t2.text = "VIEUX-MONTRÉAL  ·  19 H 42  ·  PLUIE"
+	t2.add_theme_font_override("font", load("res://assets/slice/fonts/JosefinSans.ttf"))
+	t2.add_theme_font_size_override("font_size", 24)
+	t2.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9, 0.9))
+	t2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(t1)
+	box.add_child(t2)
+	_hud.add_child(box)
+	_help = Label.new()
+	_help.text = "WASD walk  ·  Shift run  ·  Space roll  ·  LMB punch  ·  E wave\nV fly-cam  ·  Tab tour  ·  1/2/3 mood  ·  R rain  ·  F5 quality  ·  H help"
+	_help.add_theme_font_override("font", load("res://assets/slice/fonts/JosefinSans.ttf"))
+	_help.add_theme_font_size_override("font_size", 17)
+	_help.add_theme_color_override("font_color", Color(0.9, 0.9, 0.92, 0.75))
+	_help.position = Vector2(28, 28)
+	_hud.add_child(_help)
+
+func show_hud(on: bool) -> void:
+	_hud.visible = on
+
+func _update_hud(delta: float) -> void:
+	_hud_t += delta
+	_title.modulate.a = clampf(1.0 - (_hud_t - 4.5) / 2.0, 0.0, 1.0) * clampf(_hud_t / 1.2, 0.0, 1.0)
+	if _hud_t > 20.0:
+		_help.modulate.a = lerpf(_help.modulate.a, 0.0, delta * 0.8)
+
 # ================================================================= rain & post
 
 func _build_rain() -> void:
@@ -926,14 +1087,21 @@ func _build_post() -> void:
 
 # ================================================================= camera
 
+# Cinematic tour keyframes [camera, look-at], played as a Catmull-Rom spline.
 const TOUR := [
-	[Vector3(0.6, 1.7, 30.0), Vector3(0.0, 4.5, -60.0)],
-	[Vector3(-2.2, 1.65, 8.0), Vector3(1.0, 3.5, -40.0)],
-	[Vector3(-3.0, 1.6, -20.0), Vector3(4.5, 3.0, -36.0)],
-	[Vector3(1.5, 2.4, -48.0), Vector3(-1.0, 7.0, -175.0)],
-	[Vector3(0.0, 1.8, -110.0), Vector3(0.0, 16.0, -190.0)],
-	[Vector3(-3.0, 1.6, -150.0), Vector3(3.0, 14.0, -193.0)],
+	[Vector3(0.4, 9.0, 44.0), Vector3(0.0, 3.0, -40.0)],
+	[Vector3(0.2, 2.2, 32.0), Vector3(0.0, 3.6, -50.0)],
+	[Vector3(-2.4, 1.7, 16.0), Vector3(-0.5, 2.8, -20.0)],
+	[Vector3(-2.0, 1.6, 2.0), Vector3(3.0, 2.4, -14.0)],
+	[Vector3(1.6, 1.6, -10.0), Vector3(5.6, 2.4, -24.0)],
+	[Vector3(0.6, 0.45, -24.0), Vector3(0.0, 2.2, -70.0)],
+	[Vector3(-0.4, 0.8, -40.0), Vector3(0.0, 6.0, -110.0)],
+	[Vector3(0.0, 2.0, -66.0), Vector3(0.0, 14.0, -135.0)],
+	[Vector3(-1.5, 3.5, -92.0), Vector3(0.0, 17.0, -135.0)],
+	[Vector3(2.0, 16.0, -100.0), Vector3(0.0, 15.0, -135.0)],
+	[Vector3(4.0, 26.0, -88.0), Vector3(0.0, 4.0, -20.0)],
 ]
+const TOUR_SEG := 6.0
 
 func _setup_camera() -> void:
 	cam = Camera3D.new()
@@ -996,6 +1164,7 @@ func _unhandled_input(e: InputEvent) -> void:
 				_tour = false
 			KEY_R:
 				rain.emitting = not rain.emitting
+				(get_node("RainAudio") as AudioStreamPlayer).volume_db = -9.0 if rain.emitting else -40.0
 				for m in _wet_mats:
 					m.set_shader_parameter("rain", 1.0 if rain.emitting else 0.0)
 			KEY_1:
@@ -1004,6 +1173,9 @@ func _unhandled_input(e: InputEvent) -> void:
 				_set_mood(1)
 			KEY_3:
 				_set_mood(2)
+			KEY_H:
+				_help.modulate.a = 1.0 if _help.modulate.a < 0.5 else 0.0
+				_hud_t = 0.0
 			KEY_F5:
 				set_quality((quality + 1) % 3)
 			KEY_F12:
@@ -1012,13 +1184,16 @@ func _unhandled_input(e: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	if _tour:
-		_tour_t += delta / 9.0
+		_tour_t += delta / TOUR_SEG
 		var n := TOUR.size()
-		var i := int(_tour_t) % n
-		var j := (i + 1) % n
-		var f := smoothstep(0.0, 1.0, fmod(_tour_t, 1.0))
-		var pos: Vector3 = (TOUR[i][0] as Vector3).lerp(TOUR[j][0], f)
-		var look: Vector3 = (TOUR[i][1] as Vector3).lerp(TOUR[j][1], f)
+		var t := fmod(_tour_t, float(n - 1))
+		var i := int(t)
+		var f := t - i
+		var i0 := maxi(i - 1, 0)
+		var i2 := mini(i + 1, n - 1)
+		var i3 := mini(i + 2, n - 1)
+		var pos: Vector3 = (TOUR[i][0] as Vector3).cubic_interpolate(TOUR[i2][0], TOUR[i0][0], TOUR[i3][0], f)
+		var look: Vector3 = (TOUR[i][1] as Vector3).cubic_interpolate(TOUR[i2][1], TOUR[i0][1], TOUR[i3][1], f)
 		cam.global_position = pos
 		cam.look_at(look, Vector3.UP)
 	elif fly_mode:
@@ -1032,6 +1207,7 @@ func _process(delta: float) -> void:
 		if Input.is_key_pressed(KEY_Q): v.y -= 1
 		var sp := 14.0 if Input.is_key_pressed(KEY_SHIFT) else 4.0
 		cam.global_position += cam.global_transform.basis * v * sp * delta
+	_update_hud(delta)
 	var ac := active_camera()
 	_shadow_t -= delta
 	if _shadow_t <= 0.0:
