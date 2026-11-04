@@ -72,6 +72,31 @@ func play(role: String, blend := 0.2, speed := 1.0) -> void:
 func current() -> String:
 	return _current
 
+# Hold a single frame of a clip (e.g. mid-stride of the run as an airborne
+# leap pose, since the courier model ships without a jump clip).
+func pose(role: String, frac: float, blend := 0.12) -> void:
+	if not clips.has(role) or anim == null:
+		return
+	var key := role + "@pose"
+	if _current == key:
+		return
+	_current = key
+	anim.play(clips[role], blend)
+	anim.seek(anim.get_animation(clips[role]).length * frac, true)
+	anim.speed_scale = 0.0
+
+# Recolour named surface materials (e.g. the shirt), duplicating so other
+# instances of the same model keep theirs.
+func tint(material_name: String, col: Color) -> void:
+	for mi in model.find_children("*", "MeshInstance3D", true, false):
+		var m := mi as MeshInstance3D
+		for s in m.mesh.get_surface_count():
+			var mat := m.get_active_material(s)
+			if mat is StandardMaterial3D and mat.resource_name == material_name:
+				var dup := (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
+				dup.albedo_color = col
+				m.set_surface_override_material(s, dup)
+
 func busy() -> bool:
 	# one-shot clips (punch, roll, wave...) still running
-	return anim != null and anim.is_playing() and not (_current in ["idle", "walk", "run"])
+	return anim != null and anim.is_playing() and not (_current in ["idle", "walk", "run"]) and not _current.ends_with("@pose")

@@ -1,8 +1,9 @@
 class_name SliceHud
 extends CanvasLayer
 # Game HUD for "Nuit de livraison": cash/clock/combo, objective card with an
-# order timer, bag condition, interaction prompt, toasts, the AU VOLEUR alert,
-# an edge-of-screen pointer to the current target, a minimap of the quarter,
+# order timer, offer cards, bag condition, stamina, toasts, a centred stamp
+# (LIVRÉ !), the AU VOLEUR alert, a hit flash, world-anchored floating text,
+# edge-of-screen pointers to every target, a minimap with the walking route,
 # and the title / end-of-shift screens.
 
 const UI_FONT := "res://assets/slice/fonts/JosefinSans.ttf"
@@ -29,6 +30,14 @@ var _map: MiniMap
 var _title: Control
 var _summary: Control
 var _summary_text: RichTextLabel
+var _offers_box: VBoxContainer
+var _stam: ProgressBar
+var _stam_a := 0.0
+var _flash: ColorRect
+var _stamp: VBoxContainer
+var _stamp1: Label
+var _stamp2: Label
+var _stamp_tw: Tween
 
 func _font(path: String) -> Font:
 	if path != UI_FONT:
@@ -85,6 +94,23 @@ func _ready() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(root)
+
+	_flash = ColorRect.new()
+	_flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fm := ShaderMaterial.new()
+	var fsh := Shader.new()
+	fsh.code = """shader_type canvas_item;
+uniform vec4 col : source_color = vec4(1.0, 0.3, 0.2, 0.0);
+void fragment() {
+	vec2 p = UV * 2.0 - 1.0;
+	float e = smoothstep(0.35, 1.25, length(p * vec2(1.0, 0.8)));
+	COLOR = vec4(col.rgb, col.a * e);
+}"""
+	fm.shader = fsh
+	_flash.material = fm
+	root.add_child(_flash)
+
 	_pointer = Pointer.new()
 	_pointer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_pointer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -140,6 +166,16 @@ func _ready() -> void:
 	_obj_box.add_child(ov)
 	root.add_child(_obj_box)
 
+	# offer cards, under the objective card
+	_offers_box = VBoxContainer.new()
+	_offers_box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_offers_box.offset_left = -330
+	_offers_box.offset_right = 330
+	_offers_box.offset_top = 112
+	_offers_box.add_theme_constant_override("separation", 6)
+	_offers_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_offers_box)
+
 	# bag condition, under the objective
 	_cond_box = HBoxContainer.new()
 	_cond_box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
@@ -154,6 +190,16 @@ func _ready() -> void:
 	_cond_box.add_child(cl)
 	_cond_box.add_child(_cond_bar)
 	root.add_child(_cond_box)
+
+	# stamina, bottom-centre, only while it isn't full
+	_stam = _bar(Color(0.95, 0.95, 0.98))
+	_stam.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	_stam.offset_left = -110
+	_stam.offset_right = 110
+	_stam.offset_top = -64
+	_stam.offset_bottom = -58
+	_stam.modulate.a = 0.0
+	root.add_child(_stam)
 
 	# prompt, bottom-centre
 	_prompt = _label("", 26, Color(1, 1, 1))
@@ -183,6 +229,24 @@ func _ready() -> void:
 	_alert.offset_bottom = -110
 	_alert.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root.add_child(_alert)
+
+	# big centred stamp (LIVRÉ !, shift start, thief caught)
+	_stamp = VBoxContainer.new()
+	_stamp.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_stamp.offset_left = -600
+	_stamp.offset_right = 600
+	_stamp.offset_top = -260
+	_stamp.offset_bottom = -100
+	_stamp.alignment = BoxContainer.ALIGNMENT_CENTER
+	_stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stamp1 = _label("", 76, INK, TITLE_FONT)
+	_stamp1.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_stamp2 = _label("", 28, INK)
+	_stamp2.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_stamp.add_child(_stamp1)
+	_stamp.add_child(_stamp2)
+	_stamp.modulate.a = 0.0
+	root.add_child(_stamp)
 
 	_map = MiniMap.new()
 	_map.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -217,7 +281,7 @@ func _build_title(root: Control) -> void:
 	small.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var big := _label("Nuit de livraison", 110, Color(1.0, 0.93, 0.8), TITLE_FONT)
 	big.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var tag := _label("Un soir de pluie. Des commandes à livrer. Des pickpockets à attraper.", 24, Color(0.88, 0.88, 0.94))
+	var tag := _label("Un soir de pluie. Deux commandes à la fois : à vous de choisir. Des pickpockets à attraper.", 24, Color(0.88, 0.88, 0.94))
 	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 40)
@@ -226,7 +290,7 @@ func _build_title(root: Control) -> void:
 	var rec := _label("", 20, Color(1.0, 0.85, 0.45))
 	rec.name = "Record"
 	rec.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var keys := _label("WASD marcher · Maj courir · Espace roulade · Clic frapper · E interagir · Tab visite · 1/2/3 ambiance", 17, Color(0.8, 0.8, 0.86, 0.85))
+	var keys := _label("WASD courir · Maj sprint · Espace sauter · C / clic droit plonger · Clic bousculer · Alt marcher · Tab visite · F1-F3 ambiance\nManette : stick gauche · RT sprint · A sauter · B plonger · X bousculer · Start quart · Select balade", 17, Color(0.8, 0.8, 0.86, 0.85))
 	keys.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	for c in [small, big, tag, gap, menu, rec, keys]:
 		v.add_child(c)
@@ -266,11 +330,12 @@ var _play := true
 
 func set_gameplay_visible(on: bool) -> void:
 	_play = on
-	for n in [_status, _clock, _combo, _prompt, _map, _pointer]:
+	for n in [_status, _clock, _combo, _prompt, _map, _pointer, _stam]:
 		(n as Control).visible = on
 	if not on:
 		_obj_box.visible = false
 		_cond_box.visible = false
+		_offers_box.visible = false
 
 func show_title(best: float, found: int, total: int) -> void:
 	set_gameplay_visible(false)
@@ -296,6 +361,8 @@ func show_summary(s: Dictionary, total: float, best: float, record: bool, found:
 	t += "[center]Livraisons : [b]%d[/b]   (à temps %d · en retard %d)\n" % [s["deliveries"], s["on_time"], s["late"]]
 	t += "Pourboires : [b]%.2f $[/b]     Meilleure série : x%d\n" % [s["tips"], s["best_combo"]]
 	t += "Voleurs arrêtés : [b]%d[/b]     Fleurs trouvées : %d  (total %d / %d)\n" % [s["thieves"], s["fleurs"], found, ftotal]
+	if s["deliveries"] > 0:
+		t += "Note moyenne : [b]%.1f ★[/b]     Frôlés : %d     Colis abîmés : %d\n" % [float(s["stars"]) / s["deliveries"], s["grazes"], s["damage"]]
 	if s["fines"] > 0.0:
 		t += "Amendes : −%.2f $\n" % s["fines"]
 	t += "\n[font_size=44][color=#bff5bf]%.2f $[/color][/font_size]\n" % total
@@ -303,7 +370,7 @@ func show_summary(s: Dictionary, total: float, best: float, record: bool, found:
 	_summary_text.text = t
 
 func set_status(cash: float, clock: String, combo: int, shift_left: float) -> void:
-	_status.visible = cash > -0.5 and _play
+	_status.visible = cash > -999.0 and _play and clock != ""
 	_status.text = "%.2f $" % cash
 	_clock.text = clock + ("    reste %d:%02d" % [int(shift_left) / 60, int(shift_left) % 60] if shift_left >= 0.0 else "")
 	_combo.text = "série x%d" % combo if combo > 1 else ""
@@ -322,9 +389,62 @@ func set_objective(l1: String, l2: String, col: Color, frac: float, tl: String) 
 	_obj_time.text = tl
 	_obj_time.add_theme_color_override("font_color", Color(1.0, 0.45, 0.4) if tl == "EN RETARD" else INK)
 
+# Offer cards: [{col, title, sub, pay, dist, life}]
+func set_offers(rows: Array) -> void:
+	_offers_box.visible = not rows.is_empty() and _play
+	var key := ""
+	for r in rows:
+		key += String(r["title"]) + String(r["sub"]) + "|"
+	if String(_offers_box.get_meta("key", "")) != key:
+		_offers_box.set_meta("key", key)
+		for c in _offers_box.get_children():
+			c.free()
+		for r in rows:
+			var card := PanelContainer.new()
+			card.add_theme_stylebox_override("panel", _panel_style(0.55))
+			card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var h := HBoxContainer.new()
+			h.add_theme_constant_override("separation", 14)
+			h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var sw := ColorRect.new()
+			sw.color = r["col"]
+			sw.custom_minimum_size = Vector2(5, 0)
+			sw.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var v := VBoxContainer.new()
+			v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			v.add_child(_label(r["title"], 21, r["col"]))
+			v.add_child(_label(r["sub"], 16, Color(0.82, 0.84, 0.9)))
+			var right := VBoxContainer.new()
+			right.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var pay := _label(r["pay"], 24, Color(0.75, 1.0, 0.75))
+			pay.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			var dist := _label(r["dist"], 16, Color(0.82, 0.84, 0.9))
+			dist.name = "Dist"
+			dist.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+			right.add_child(pay)
+			right.add_child(dist)
+			h.add_child(sw)
+			h.add_child(v)
+			h.add_child(right)
+			card.add_child(h)
+			_offers_box.add_child(card)
+	for i in mini(rows.size(), _offers_box.get_child_count()):
+		var dl := _offers_box.get_child(i).find_child("Dist", true, false) as Label
+		var life: float = rows[i]["life"]
+		dl.text = String(rows[i]["dist"]) + ("  ·  expire bientôt" if life >= 0.0 and life < 0.25 else "")
+
 func set_condition(frac: float) -> void:
 	_cond_box.visible = frac >= 0.0 and _play
 	_cond_bar.value = maxf(frac, 0.0)
+	var fill := _cond_bar.get_theme_stylebox("fill") as StyleBoxFlat
+	fill.bg_color = Color(1.0, 0.4, 0.3) if frac < 0.5 else Color(0.95, 0.75, 0.35)
+
+func set_stamina(v: float, winded: bool) -> void:
+	_stam.value = v
+	var fill := _stam.get_theme_stylebox("fill") as StyleBoxFlat
+	fill.bg_color = Color(1.0, 0.55, 0.3) if winded else Color(0.95, 0.95, 0.98)
+	_stam_a = 0.85 if v < 0.995 else 0.0
 
 func set_prompt(t: String) -> void:
 	_prompt.text = t
@@ -339,24 +459,53 @@ func toast(text: String, col := INK) -> void:
 	tw.tween_property(l, "modulate:a", 0.0, 0.8)
 	tw.tween_callback(l.queue_free)
 
+func stamp(big: String, small: String, col: Color) -> void:
+	_stamp1.text = big
+	_stamp1.add_theme_color_override("font_color", col)
+	_stamp2.text = small
+	_stamp.pivot_offset = _stamp.size * 0.5
+	if _stamp_tw != null:
+		_stamp_tw.kill()
+	_stamp_tw = create_tween()
+	_stamp.modulate.a = 1.0
+	_stamp.scale = Vector2(1.3, 1.3)
+	_stamp_tw.tween_property(_stamp, "scale", Vector2.ONE, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_stamp_tw.tween_interval(1.3)
+	_stamp_tw.tween_property(_stamp, "modulate:a", 0.0, 0.5)
+
+func flash(col: Color, strength := 0.25) -> void:
+	var m := _flash.material as ShaderMaterial
+	var tw := create_tween()
+	tw.tween_method(func(a: float): m.set_shader_parameter("col", Color(col.r, col.g, col.b, a)), strength, 0.0, 0.45)
+
+# World-anchored text that rises and fades (+12.40 $, Frôlé !, ...).
+func float_text(pos: Vector3, text: String, col: Color) -> void:
+	_pointer.floaters.append({"pos": pos, "text": text, "col": col, "t": 0.0})
+
 func alert(text: String) -> void:
 	_alert.text = text
 	_alert_t = 3.0 if text != "" else 0.0
 
-func update_pointer(cam: Camera3D, target: Vector3, col: Color) -> void:
+func update_pointer(cam: Camera3D, targets: Array) -> void:
 	_pointer.cam = cam
-	_pointer.target = target
-	_pointer.col = col
+	_pointer.targets = targets
 	_pointer.queue_redraw()
 
-func update_map(ppos: Vector3, yaw: float, target: Vector3, col: Color) -> void:
+func update_map(ppos: Vector3, yaw: float, targets: Array, route: PackedVector3Array, cars: Array = []) -> void:
 	_map.player = ppos
 	_map.yaw = yaw
-	_map.target = target
-	_map.tcol = col
+	_map.targets = targets
+	_map.route = route
+	_map.cars = cars
 	_map.queue_redraw()
 
 func _process(delta: float) -> void:
+	_stam.modulate.a = lerpf(_stam.modulate.a, _stam_a, clampf(delta * 6.0, 0, 1))
+	if not _pointer.floaters.is_empty():
+		for f in _pointer.floaters:
+			f["t"] += delta
+		_pointer.floaters = _pointer.floaters.filter(func(f): return f["t"] < 1.6)
+		_pointer.queue_redraw()
 	if _alert_t > 0.0:
 		_alert_t -= delta
 		_alert.modulate.a = clampf(_alert_t, 0.0, 1.0) * (0.75 + 0.25 * sin(_alert_t * 14.0))
@@ -366,16 +515,29 @@ func _process(delta: float) -> void:
 # ------------------------------------------------------------------ widgets
 
 class Pointer extends Control:
-	# On-screen: a chevron + distance over the target. Off-screen: an arrow
-	# pinned to the screen edge pointing the way.
+	# Per target: on-screen, a chevron + distance over it; off-screen, an arrow
+	# pinned to the screen edge pointing the way. Also draws floating texts.
 	var cam: Camera3D
-	var target := Vector3.INF
-	var col := Color.WHITE
+	var targets: Array = []     # [pos, col, label]
+	var floaters: Array = []
 	var font: Font
 
 	func _draw() -> void:
-		if cam == null or target == Vector3.INF:
+		if cam == null:
 			return
+		for t in targets:
+			_draw_target(t[0], t[1], t[2])
+		for f in floaters:
+			var p: Vector3 = f["pos"] + Vector3.UP * f["t"] * 0.9
+			if cam.is_position_behind(p):
+				continue
+			var sp := cam.unproject_position(p)
+			var a: float = clampf(1.6 - f["t"], 0.0, 1.0) * clampf(f["t"] * 8.0, 0.0, 1.0)
+			var c: Color = f["col"]
+			draw_string(font, sp + Vector2(-198, 2), f["text"], HORIZONTAL_ALIGNMENT_CENTER, 400, 26, Color(0, 0, 0, 0.6 * a))
+			draw_string(font, sp + Vector2(-200, 0), f["text"], HORIZONTAL_ALIGNMENT_CENTER, 400, 26, Color(c.r, c.g, c.b, a))
+
+	func _draw_target(target: Vector3, col: Color, label: String) -> void:
 		var vs := get_viewport_rect().size
 		var tp := target + Vector3.UP * 2.4
 		var dist := cam.global_position.distance_to(target)
@@ -383,10 +545,11 @@ class Pointer extends Control:
 		var sp := cam.unproject_position(tp)
 		var margin := 60.0
 		var inside := not behind and sp.x > margin and sp.x < vs.x - margin and sp.y > margin and sp.y < vs.y - margin
+		var txt := ("%s  " % label if label != "" else "") + "%d m" % int(dist)
 		if inside:
 			var pts := PackedVector2Array([sp + Vector2(-12, -18), sp + Vector2(12, -18), sp + Vector2(0, 0)])
 			draw_colored_polygon(pts, col)
-			draw_string(font, sp + Vector2(-40, -26), "%d m" % int(dist), HORIZONTAL_ALIGNMENT_CENTER, 80, 18, col)
+			draw_string(font, sp + Vector2(-80, -26), txt, HORIZONTAL_ALIGNMENT_CENTER, 160, 18, col)
 			return
 		var c := vs * 0.5
 		var dir := (sp - c)
@@ -402,14 +565,16 @@ class Pointer extends Control:
 		var perp := Vector2(-dir.y, dir.x)
 		var tri := PackedVector2Array([p + dir * 20.0, p - dir * 8.0 + perp * 14.0, p - dir * 8.0 - perp * 14.0])
 		draw_colored_polygon(tri, col)
-		draw_string(font, p - dir * 40.0 + Vector2(-40, 6), "%d m" % int(dist), HORIZONTAL_ALIGNMENT_CENTER, 80, 18, col)
+		draw_string(font, p - dir * 44.0 + Vector2(-80, 6), txt, HORIZONTAL_ALIGNMENT_CENTER, 160, 18, col)
 
 class MiniMap extends Control:
-	# North-up map of the quarter's three streets, player arrow, target dot.
+	# North-up map of the quarter's three streets: walking route, targets,
+	# cars, player arrow.
 	var player := Vector3.ZERO
 	var yaw := 0.0
-	var target := Vector3.INF
-	var tcol := Color.WHITE
+	var targets: Array = []
+	var route := PackedVector3Array()
+	var cars: Array = []
 	var font: Font
 	const VIEW := 70.0   # metres from centre to edge
 
@@ -435,8 +600,19 @@ class MiniMap extends Control:
 		var dome := _w2m(Vector3(0, 0, -135))
 		if Rect2(Vector2.ZERO, s).has_point(dome):
 			draw_circle(dome, 6.0, Color(0.75, 0.77, 0.8))
-		if target != Vector3.INF:
-			var t := _w2m(target)
+		if route.size() > 1:
+			var pts := PackedVector2Array()
+			for rp in route:
+				pts.append(_w2m(rp))
+			var rc: Color = targets[0][1] if not targets.is_empty() else Color.WHITE
+			draw_polyline(pts, Color(rc.r, rc.g, rc.b, 0.85), 3.0, true)
+		for cp in cars:
+			var m := _w2m(cp)
+			if Rect2(Vector2.ZERO, s).has_point(m):
+				draw_rect(Rect2(m - Vector2(3, 3), Vector2(6, 6)), Color(0.95, 0.9, 0.7, 0.8))
+		for tg in targets:
+			var tcol: Color = tg[1]
+			var t := _w2m(tg[0])
 			var tc := Vector2(clampf(t.x, 6, s.x - 6), clampf(t.y, 6, s.y - 6))
 			draw_circle(tc, 7.0, tcol)
 			draw_arc(tc, 10.0, 0, TAU, 20, Color(tcol.r, tcol.g, tcol.b, 0.5), 2.0)

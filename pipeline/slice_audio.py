@@ -4,7 +4,7 @@ Run: .venv/Scripts/python -m pipeline.slice_audio  ->  game/assets/slice/audio/*
 rain.wav       steady rain hiss + random drips/patter, seamless 12 s loop (stereo)
 drips.wav      gutter drips onto metal/puddles, sparse, 9 s loop (stereo)
 step_wet.wav   wet cobble footstep: thud + short splash
-sfx_*.wav      game cues (order, pickup, cash, fleur, fail, end, whistle, bump)
+sfx_*.wav      game cues (order, pickup, cash, fleur, fail, end, whistle, bump, honk, graze)
 """
 from __future__ import annotations
 
@@ -137,6 +137,23 @@ def game_cues() -> dict:
     n = int(SR * 0.25)
     t = np.arange(n) / SR
     bump = _lp(rng.standard_normal(n), 0.97) * np.exp(-t / 0.05)
+    # car horn: two detuned buzzy tones a major third apart, short double tap
+    ht = np.arange(int(SR * 0.62)) / SR
+    def buzz(f):
+        ph = 2 * np.pi * f * ht
+        return np.tanh(2.5 * (np.sin(ph) + 0.5 * np.sin(2 * ph + 0.3) + 0.25 * np.sin(3 * ph)))
+    horn = 0.5 * buzz(392.0) + 0.5 * buzz(494.0)
+    gate = ((ht < 0.17) | ((ht > 0.24) & (ht < 0.58))).astype(float)
+    gate = _lp(gate, 0.995)
+    horn = _lp(horn, 0.55) * gate
+    # graze: a quick filtered-noise whoosh rising in pitch
+    gn = int(SR * 0.32)
+    gt = np.arange(gn) / SR
+    w = rng.standard_normal(gn)
+    lo = _lp(w, 0.96)
+    hi = w - _lp(w, 0.5)
+    k = gt / gt[-1]
+    whoosh = ((1 - k) * lo * 3.0 + k * hi * 0.6) * np.sin(np.pi * np.minimum(1.0, gt / 0.3)) ** 2
     return {
         "order": _seq([659.3, 880.0], 0.11, 0.35, 0.18),
         "pickup": _seq([523.3, 659.3, 784.0], 0.07, 0.3, 0.12),
@@ -146,6 +163,8 @@ def game_cues() -> dict:
         "end": _seq([523.3, 659.3, 784.0, 1046.5], 0.14, 0.9, 0.4),
         "whistle": 0.8 * whistle / np.abs(whistle).max(),
         "bump": 0.9 * bump / np.abs(bump).max(),
+        "honk": 0.8 * horn / np.abs(horn).max(),
+        "graze": 0.7 * whoosh / np.abs(whoosh).max(),
     }
 
 

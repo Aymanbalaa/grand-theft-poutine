@@ -5,9 +5,9 @@ extends Node3D
 # window openings, wall lanterns, string lights, a café terrace, and the
 # Marché Bonsecours dome closing the vista.
 #
-# Controls: WASD + mouse to walk (Shift run, Space roll, LMB punch, E wave),
+# Controls: WASD + mouse to run (Shift sprint, Space jump, C/RMB dive, LMB shove),
 # V = free fly-cam (Q/E down/up), Tab = cinematic tour, R = rain on/off,
-# 1/2/3 = blue hour / night / overcast day, F12 = screenshot.
+# F1-F3 = blue hour / night / overcast day, F12 = screenshot.
 
 const TEX := "res://assets/slice/tex/"
 const MOD := "res://assets/slice/models/"
@@ -42,6 +42,8 @@ var _backdrop_mat: ShaderMaterial
 var player: SlicePlayer
 var game: SliceGame
 var peds: SlicePedestrians
+var traffic: SliceTraffic
+var traffic_positions: Array = []
 var fly_mode := false
 var _idle_spots: Array = []
 
@@ -277,44 +279,53 @@ func _make_environment() -> void:
 	RenderingServer.environment_set_ssr_roughness_quality(RenderingServer.ENV_SSR_ROUGHNESS_QUALITY_HIGH)
 	RenderingServer.environment_set_ssao_quality(RenderingServer.ENV_SSAO_QUALITY_HIGH, true, 0.5, 2, 50, 300)
 
+const MOODS := [
+	# blue hour after rain
+	{"sun_col": Color(0.55, 0.62, 0.95), "sun_e": 0.12, "sun_rot": Vector3(-12.0, 160.0, 0), "sky_e": 0.85, "day": 0.0,
+		"amb": 0.58, "fog_col": Color(0.22, 0.27, 0.42), "vfog": 0.016, "night": 0.9, "exposure": 1.05},
+	# deep night
+	{"sun_col": Color(0.45, 0.55, 0.9), "sun_e": 0.05, "sun_rot": Vector3(-40.0, 120.0, 0), "sky_e": 0.45, "day": 0.0,
+		"amb": 0.45, "fog_col": Color(0.09, 0.11, 0.18), "vfog": 0.02, "night": 1.0, "exposure": 1.1},
+	# overcast day
+	{"sun_col": Color(1.0, 0.96, 0.9), "sun_e": 1.4, "sun_rot": Vector3(-48.0, 150.0, 0), "sky_e": 1.0, "day": 1.0,
+		"amb": 1.0, "fog_col": Color(0.6, 0.65, 0.72), "vfog": 0.002, "night": 0.0, "exposure": 1.0},
+]
+
 func _set_mood(m: int) -> void:
 	mood = m
-	var night := 1.0
-	match m:
-		0:  # blue hour after rain
-			sun.light_color = Color(0.55, 0.62, 0.95)
-			sun.light_energy = 0.12
-			sun.rotation = Vector3(deg_to_rad(-12.0), deg_to_rad(160.0), 0)
-			_sky_mat.set_shader_parameter("energy", 0.85)
-			_sky_mat.set_shader_parameter("day", 0.0)
-			env.ambient_light_energy = 0.55
-			env.fog_light_color = Color(0.22, 0.27, 0.42)
-			env.volumetric_fog_density = 0.016
-			night = 0.9
-		1:  # deep night
-			sun.light_color = Color(0.45, 0.55, 0.9)
-			sun.light_energy = 0.04
-			sun.rotation = Vector3(deg_to_rad(-40.0), deg_to_rad(120.0), 0)
-			_sky_mat.set_shader_parameter("energy", 0.4)
-			_sky_mat.set_shader_parameter("day", 0.0)
-			env.ambient_light_energy = 0.4
-			env.fog_light_color = Color(0.08, 0.1, 0.16)
-			env.volumetric_fog_density = 0.02
-			night = 1.0
-		2:  # overcast day
-			sun.light_color = Color(1.0, 0.96, 0.9)
-			sun.light_energy = 1.4
-			sun.rotation = Vector3(deg_to_rad(-48.0), deg_to_rad(150.0), 0)
-			_sky_mat.set_shader_parameter("energy", 1.0)
-			_sky_mat.set_shader_parameter("day", 1.0)
-			env.ambient_light_energy = 1.0
-			env.fog_light_color = Color(0.6, 0.65, 0.72)
-			env.volumetric_fog_density = 0.002
-			night = 0.0
+	_apply_mood(MOODS[m])
+
+# The shift runs 19:30 -> 23:00: blue hour slides into night as it goes
+# (unless the overcast-day mood was picked by hand).
+func set_shift_progress(f: float) -> void:
+	if mood == 2:
+		return
+	var k := smoothstep(0.05, 0.95, f)
+	var a: Dictionary = MOODS[0]
+	var b: Dictionary = MOODS[1]
+	var p := {}
+	for key in a.keys():
+		p[key] = lerp(a[key], b[key], k)
+	_apply_mood(p)
+
+func _apply_mood(p: Dictionary) -> void:
+	sun.light_color = p["sun_col"]
+	sun.light_energy = p["sun_e"]
+	var r: Vector3 = p["sun_rot"]
+	sun.rotation = Vector3(deg_to_rad(r.x), deg_to_rad(r.y), 0)
+	_sky_mat.set_shader_parameter("energy", p["sky_e"])
+	_sky_mat.set_shader_parameter("day", p["day"])
+	env.ambient_light_energy = p["amb"]
+	env.fog_light_color = p["fog_col"]
+	env.volumetric_fog_density = p["vfog"]
+	env.tonemap_exposure = p["exposure"]
+	var night: float = p["night"]
 	_glass_mat.set_shader_parameter("night", night)
 	_backdrop_mat.set_shader_parameter("night", night)
 	for l in _lamp_lights:
 		l.visible = night > 0.2
+	if traffic != null:
+		traffic.lights_on = night > 0.2
 	for em in _emissive_mats:
 		em.emission_energy_multiplier = 4.0 * night + 0.05
 	RenderingServer.global_shader_parameter_set("night_amount", night)
@@ -1188,7 +1199,7 @@ func _build_hud() -> void:
 	box.add_child(t2)
 	_hud.add_child(box)
 	_help = Label.new()
-	_help.text = "WASD walk  ·  Shift run  ·  Space roll  ·  LMB punch  ·  E wave\nV fly-cam  ·  Tab tour  ·  1/2/3 mood  ·  R rain  ·  F5 quality  ·  H help"
+	_help.text = "WASD run  ·  Shift sprint  ·  Space jump  ·  C / RMB dive  ·  LMB shove  ·  Alt walk  ·  E interact\nV fly-cam  ·  Tab tour  ·  F1-F3 mood  ·  R rain  ·  F5 quality  ·  H help"
 	_help.add_theme_font_override("font", load("res://assets/slice/fonts/JosefinSans.ttf"))
 	_help.add_theme_font_size_override("font_size", 17)
 	_help.add_theme_color_override("font_color", Color(0.9, 0.9, 0.92, 0.75))
@@ -1309,6 +1320,12 @@ func _spawn_people() -> void:
 	peds.edges = {"N": ["X"], "X": ["N", "S", "W", "E"], "S": ["X", "CW", "CE"], "W": ["X"], "E": ["X"], "CW": ["S"], "CE": ["S"]}
 	add_child(peds)
 	peds.spawn(34, _idle_spots)
+	traffic = SliceTraffic.new()
+	traffic.name = "Traffic"
+	traffic.player = player
+	traffic.peds = peds
+	add_child(traffic)
+	traffic.spawn(4)
 
 func set_fly(on: bool) -> void:
 	fly_mode = on
@@ -1350,11 +1367,11 @@ func _unhandled_input(e: InputEvent) -> void:
 				(get_node("RainAudio") as AudioStreamPlayer).volume_db = -9.0 if rain.emitting else -40.0
 				for m in _wet_mats:
 					m.set_shader_parameter("rain", 1.0 if rain.emitting else 0.0)
-			KEY_1:
+			KEY_1, KEY_F1:
 				_set_mood(0)
-			KEY_2:
+			KEY_2, KEY_F2:
 				_set_mood(1)
-			KEY_3:
+			KEY_3, KEY_F3:
 				_set_mood(2)
 			KEY_H:
 				_help.visible = true
@@ -1392,6 +1409,7 @@ func _process(delta: float) -> void:
 		var sp := 14.0 if Input.is_key_pressed(KEY_SHIFT) else 4.0
 		cam.global_position += cam.global_transform.basis * v * sp * delta
 	_update_hud(delta)
+	traffic_positions = traffic.positions()
 	var ac := active_camera()
 	_shadow_t -= delta
 	if _shadow_t <= 0.0:

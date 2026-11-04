@@ -11,7 +11,8 @@ signal thief_escaped
 const IDS := ["woman_red", "woman_green", "woman_white", "man_tshirt", "adventurer"]
 const UMBRELLA_COLS := [Color(0.03, 0.03, 0.035), Color(0.05, 0.08, 0.18), Color(0.4, 0.05, 0.05), Color(0.08, 0.15, 0.1), Color(0.55, 0.45, 0.2)]
 const CURB_H := 0.15
-const THIEF_SPEED := 4.7
+const THIEF_SPEED := 5.7       # player jogs 4.3, sprints 7.0
+const THIEF_TIRED := 4.5       # after a long burst the thief flags
 
 var rng := RandomNumberGenerator.new()
 var walkers: Array[Dictionary] = []
@@ -166,22 +167,43 @@ func _resume(w: Dictionary) -> void:
 	if w["umbrella"] != null:
 		(w["umbrella"] as Node3D).visible = true
 
-# A running player body-checks walkers. Returns true when someone was knocked.
-func check_bump(pos: Vector3, speed: float) -> bool:
-	if speed < 3.4:
+# A running (or diving) player body-checks walkers. Returns true when someone
+# was knocked.
+func check_bump(pos: Vector3, speed: float, diving := false) -> bool:
+	if speed < 3.6 and not diving:
 		return false
 	for w in walkers:
 		if w["state"] in ["walk", "idle"]:
 			var p: SlicePerson = w["p"]
 			var d := p.global_position - pos
 			d.y = 0
-			if d.length() < 0.75:
+			if d.length() < (0.95 if diving else 0.7):
 				w["state"] = "stagger"
-				w["timer"] = 1.3
+				w["timer"] = 1.6 if diving else 1.2
 				p.play("hit" if p.clips.has("hit") else "idle", 0.08)
-				p.position += d.normalized() * 0.5
+				p.position += d.normalized() * (0.9 if diving else 0.5)
 				return true
 	return false
+
+# Sprinting close past people without touching them. Returns how many walkers
+# were newly grazed (each walker counts once per few seconds).
+func near_misses(pos: Vector3, speed: float) -> int:
+	if speed < 5.2:
+		return 0
+	var n := 0
+	var now := Time.get_ticks_msec()
+	for w in walkers:
+		if not (w["state"] in ["walk", "idle"]):
+			continue
+		var d := (w["p"] as Node3D).global_position - pos
+		d.y = 0
+		var l := d.length()
+		if l > 0.72 and l < 1.35 and now - int(w.get("grazed", -100000)) > 4000:
+			w["grazed"] = now
+			n += 1
+			# a startled half-step away
+			w["dodge"] = w.get("dodge", 0.0) + (0.3 if randf() < 0.5 else -0.3)
+	return n
 
 # Player punch: hits the closest person in front within reach.
 # Returns "thief", "person" or "".
@@ -219,7 +241,7 @@ func tackle(pos: Vector3) -> bool:
 		return false
 	var d: Vector3 = (thief["p"] as Node3D).global_position - pos
 	d.y = 0
-	if d.length() < 1.2:
+	if d.length() < 1.7:
 		_catch_thief(thief)
 		return true
 	return false
@@ -310,9 +332,15 @@ func _thief_step(w: Dictionary, delta: float) -> void:
 		tgt = graph[best]
 		to = tgt - Vector3(p.position.x, 0, p.position.z)
 	var dir := to.normalized()
-	# jink sideways a little so the chase isn't a straight line
+	# jink sideways a little so the chase isn't a straight line; bursts of
+	# speed, then a winded stretch where a sprinting courier closes in
 	var side := Vector3(-dir.z, 0, dir.x) * sin(w["timer"] * 1.7) * 1.2
-	p.position += (dir * THIEF_SPEED + side) * delta
+	var cycle := fmod(w["timer"], 9.0)
+	var spd := THIEF_SPEED if cycle < 6.0 else THIEF_TIRED
+	if player != null and player.global_position.distance_to(p.global_position) > 22.0:
+		spd = THIEF_TIRED    # rubber band: never lose the player outright
+	p.play("run", 0.2, spd / 4.8)
+	p.position += (dir * spd + side) * delta
 	p.position.y = 0.02 if on_road.call(p.position) else CURB_H
 	p.rotation.y = lerp_angle(p.rotation.y, atan2(dir.x, dir.z), clampf(delta * 10.0, 0, 1))
 	var arrow := p.get_node_or_null("ThiefArrow") as Node3D

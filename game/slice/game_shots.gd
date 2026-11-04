@@ -39,6 +39,7 @@ func _aim(from: Vector3, to: Vector3) -> void:
 	player.set("cam_yaw", atan2(-d.x, -d.z))
 	player.set("cam_pitch", -0.12)
 	(player.get("person") as Node3D).rotation.y = atan2(d.x, d.z)
+	player.set("_facing_yaw", atan2(d.x, d.z))
 
 func _init() -> void:
 	if FileAccess.file_exists("user://shots_save.json"):
@@ -51,14 +52,17 @@ func _init() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	await shot("title")
 	game.call("start_shift")
-	await frames(150)
-	var order: Dictionary = game.get("order")
-	face_door(order["shop"], 13.0)
+	for i in 400:
+		await process_frame
+		if (game.get("offers") as Array).size() == 2:
+			break
+	var offers: Array = game.get("offers")
+	face_door(offers[0]["shop"], 13.0)
 	await frames(160)
 	await shot("pickup")
-	player.global_position = order["shop"]["pos"] + Vector3.UP * 0.1
+	player.global_position = offers[0]["shop"]["pos"] + Vector3.UP * 0.1
 	await frames(5)
-	game.call("_try_interact")
+	var order: Dictionary = game.get("order")
 	# turn around so the drop-off is off-screen: shows the edge pointer
 	var hp: Vector3 = order["home"]["pos"]
 	var away := (player.global_position - hp)
@@ -71,9 +75,7 @@ func _init() -> void:
 	await frames(120)
 	await shot("dropoff")
 	player.global_position = hp + Vector3.UP * 0.1
-	await frames(3)
-	game.call("_try_interact")
-	await frames(30)
+	await frames(14)
 	await shot("delivered")
 	# pickpocket chase
 	var peds: Node = scene.get("peds")
