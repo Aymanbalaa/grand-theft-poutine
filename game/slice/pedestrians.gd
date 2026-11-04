@@ -112,8 +112,22 @@ func _place_on_segment(w: Dictionary, delta: float) -> void:
 	p.rotation.y = lerp_angle(p.rotation.y, target, clampf(delta * 6.0, 0, 1)) if delta > 0.0 else target
 
 func _physics_process(delta: float) -> void:
+	# anyone brushing past the lens (or standing between it and the courier)
+	# is hidden so they never fill the screen
+	var cam := get_viewport().get_camera_3d()
+	var cpos := cam.global_position if cam != null else Vector3.INF
+	var follow: bool = player != null and cam != null and cam == player.get("camera")
+	var ppos := player.global_position + Vector3.UP * 1.2 if follow else Vector3.INF
 	for w in walkers:
 		var p: SlicePerson = w["p"]
+		if cam != null:
+			var head := p.global_position + Vector3.UP * 1.2
+			var near := head.distance_to(cpos) < 1.5
+			if not near and ppos != Vector3.INF:
+				var seg := ppos - cpos
+				var t := clampf((head - cpos).dot(seg) / maxf(seg.length_squared(), 0.01), 0.0, 1.0)
+				near = t > 0.05 and t < 0.8 and head.distance_to(cpos + seg * t) < 0.55
+			p.visible = not near
 		match w["state"]:
 			"walk":
 				var f := _seg_frame(w)

@@ -380,7 +380,7 @@ func show_title(best: float, found: int, total: int, medal: Array = []) -> void:
 	_summary.visible = false
 	var rec := _title.find_child("Record", true, false) as Label
 	rec.text = ("Record : %.2f $" % best if best > 0.0 else "") + ("   (médaille %s)" % medal[1] if not medal.is_empty() else "") \
-		+ ("     Fleurs de lys : %d / %d" % [found, total]) + "\nObjectifs : bronze 150 $ · argent 250 $ · or 350 $"
+		+ ("     Fleurs de lys : %d / %d" % [found, total]) + "\nObjectifs : bronze 175 $ · argent 275 $ · or 400 $"
 	_map.visible = false
 
 func hide_overlays() -> void:
@@ -408,7 +408,7 @@ func show_summary(s: Dictionary, total: float, best: float, record: bool, found:
 	if not med.is_empty():
 		t += "[font_size=30][color=#%s]Médaille %s[/color][/font_size]\n" % [(med[2] as Color).to_html(false), med[1]]
 	else:
-		t += "[color=#b0b0b8]Bronze à 150 $ — encore %.0f $[/color]\n" % maxf(0.0, 150.0 - total)
+		t += "[color=#b0b0b8]Bronze à 175 $ — encore %.0f $[/color]\n" % maxf(0.0, 175.0 - total)
 	t += ("[color=#ffd873]Nouveau record ![/color]" if record else "Record : %.2f $" % best) + "[/center]"
 	_summary_text.text = t
 

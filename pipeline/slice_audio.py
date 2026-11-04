@@ -4,7 +4,8 @@ Run: .venv/Scripts/python -m pipeline.slice_audio  ->  game/assets/slice/audio/*
 rain.wav       steady rain hiss + random drips/patter, seamless 12 s loop (stereo)
 drips.wav      gutter drips onto metal/puddles, sparse, 9 s loop (stereo)
 step_wet.wav   wet cobble footstep: thud + short splash
-sfx_*.wav      game cues (order, pickup, cash, fleur, fail, end, whistle, bump, honk, graze)
+sfx_*.wav      game cues (order, pickup, cash, fleur, fail, end, whistle, bump, honk, graze, tick)
+music_night.wav  late-night jazz loop (Rhodes, upright bass, brushes), 8 bars, mono
 """
 from __future__ import annotations
 
@@ -165,6 +166,7 @@ def game_cues() -> dict:
         "bump": 0.9 * bump / np.abs(bump).max(),
         "honk": 0.8 * horn / np.abs(horn).max(),
         "graze": 0.7 * whoosh / np.abs(whoosh).max(),
+        "tick": _seq([1760.0], 0.1, 0.09, 0.025),
     }
 
 

@@ -20,7 +20,7 @@ const DROP_COL := Color(0.3, 0.85, 1.0)
 const THIEF_COL := Color(1.0, 0.25, 0.2)
 const REACH := 2.4
 const OFFER_LIFE := 40.0
-const MEDALS := [[350.0, "Or", Color(1.0, 0.82, 0.3)], [250.0, "Argent", Color(0.85, 0.88, 0.95)], [150.0, "Bronze", Color(0.85, 0.55, 0.3)]]
+const MEDALS := [[400.0, "Or", Color(1.0, 0.82, 0.3)], [275.0, "Argent", Color(0.85, 0.88, 0.95)], [175.0, "Bronze", Color(0.85, 0.55, 0.3)]]
 const FLEURS := [
 	Vector3(-4.9, 0.85, 41.5), Vector3(4.9, 0.85, -104.0), Vector3(90.0, 0.85, -47.0),
 	Vector3(-90.0, 0.85, -57.0), Vector3(55.0, 0.75, -52.0), Vector3(-31.0, 0.85, -46.8),
@@ -538,7 +538,11 @@ func _process(delta: float) -> void:
 			offers.pop_front()
 			_refresh_offers()
 		if not order.is_empty():
+			var before: float = order["t"]
 			order["t"] -= delta
+			# last 8 seconds: a tick each second, rising in pitch
+			if before > 0.0 and before <= 8.0 and ceil(before) != ceil(order["t"]):
+				_sfx("tick", -8.0, 1.0 + (8.0 - before) * 0.05)
 		# arrive = act (rolling or knocked over doesn't count)
 		if not player.rolling() and not player.knocked():
 			_try_interact()
