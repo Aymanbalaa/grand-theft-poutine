@@ -282,10 +282,10 @@ func _make_environment() -> void:
 const MOODS := [
 	# blue hour after rain
 	{"sun_col": Color(0.55, 0.62, 0.95), "sun_e": 0.12, "sun_rot": Vector3(-12.0, 160.0, 0), "sky_e": 0.85, "day": 0.0,
-		"amb": 0.58, "fog_col": Color(0.22, 0.27, 0.42), "vfog": 0.016, "night": 0.9, "exposure": 1.05},
+		"amb": 0.78, "fog_col": Color(0.24, 0.29, 0.45), "vfog": 0.016, "night": 0.9, "exposure": 1.22},
 	# deep night
 	{"sun_col": Color(0.45, 0.55, 0.9), "sun_e": 0.05, "sun_rot": Vector3(-40.0, 120.0, 0), "sky_e": 0.45, "day": 0.0,
-		"amb": 0.45, "fog_col": Color(0.09, 0.11, 0.18), "vfog": 0.02, "night": 1.0, "exposure": 1.1},
+		"amb": 0.62, "fog_col": Color(0.1, 0.12, 0.2), "vfog": 0.02, "night": 1.0, "exposure": 1.3},
 	# overcast day
 	{"sun_col": Color(1.0, 0.96, 0.9), "sun_e": 1.4, "sun_rot": Vector3(-48.0, 150.0, 0), "sky_e": 1.0, "day": 1.0,
 		"amb": 1.0, "fog_col": Color(0.6, 0.65, 0.72), "vfog": 0.002, "night": 0.0, "exposure": 1.0},
@@ -1166,6 +1166,14 @@ func _build_audio() -> void:
 	c.volume_db = -20.0
 	c.autoplay = true
 	add_child(c)
+	# late-night jazz loop under the rain (synthesized: pipeline/slice_audio.py)
+	if ResourceLoader.exists("res://assets/slice/audio/music_night.wav"):
+		var m := AudioStreamPlayer.new()
+		m.stream = _loop_wav("res://assets/slice/audio/music_night.wav")
+		m.volume_db = -15.0
+		m.autoplay = true
+		m.name = "Music"
+		add_child(m)
 
 var _hud: CanvasLayer
 var _title: Control
@@ -1335,6 +1343,14 @@ func set_fly(on: bool) -> void:
 	else:
 		player.camera.current = true
 
+# Title / summary backdrop: the cinematic spline tour behind the menus.
+func set_attract(on: bool) -> void:
+	_tour = on
+	_tour_t = 0.0 if on else _tour_t
+	set_fly(on)
+	if not on:
+		player.active = true
+
 func active_camera() -> Camera3D:
 	return cam if fly_mode else player.camera
 
@@ -1346,14 +1362,17 @@ func set_view(pos: Vector3, look: Vector3) -> void:
 	_pitch = cam.rotation.x
 
 func _unhandled_input(e: InputEvent) -> void:
-	if e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and fly_mode:
+	var menu: bool = game != null and game.state in ["title", "summary"]
+	if e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and fly_mode and not menu:
 		_yaw -= e.relative.x * 0.0025
 		_pitch = clampf(_pitch - e.relative.y * 0.0025, -1.4, 1.4)
 		_tour = false
 	elif e is InputEventKey and e.pressed and not e.echo:
 		match e.keycode:
 			KEY_ESCAPE:
-				Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
+				# in play, Esc pauses (handled by the game); in menus it frees the mouse
+				if menu or game == null:
+					Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else Input.MOUSE_MODE_CAPTURED
 			KEY_TAB:
 				_tour = not _tour
 				_tour_t = 0.0

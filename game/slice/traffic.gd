@@ -38,6 +38,18 @@ var lights_on := true
 var _honk: AudioStream
 var _engine: AudioStream
 
+var enabled := true
+
+# Park every car out of sight (tests that only exercise walking geometry).
+func set_enabled(on: bool) -> void:
+	enabled = on
+	for c in cars:
+		c["active"] = false
+		c["wait"] = 0.5
+		(c["node"] as Node3D).visible = false
+		(c["node"] as Node3D).global_position = Vector3(0, -50, 0)
+		(c["eng"] as AudioStreamPlayer3D).stop()
+
 func positions() -> Array:
 	var out := []
 	for c in cars:
@@ -111,7 +123,7 @@ func _make_car(i: int) -> Dictionary:
 	head.spot_range = 24.0
 	head.spot_angle = 32.0
 	head.spot_attenuation = 0.8
-	head.light_volumetric_fog_energy = 1.5
+	head.light_volumetric_fog_energy = 1.0
 	head.shadow_enabled = false
 	head.position = Vector3(0, 0.75, -HALF_LEN - 0.05)
 	head.rotation.x = deg_to_rad(-8.0)
@@ -221,6 +233,8 @@ func _hidden_from_player(p: Vector3) -> bool:
 	return far or (behind and p.distance_to(player.global_position) > 14.0)
 
 func _physics_process(delta: float) -> void:
+	if not enabled:
+		return
 	for c in cars:
 		if not c["active"]:
 			c["wait"] -= delta

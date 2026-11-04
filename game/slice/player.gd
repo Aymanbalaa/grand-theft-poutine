@@ -134,6 +134,16 @@ func _ready() -> void:
 	rim.position = Vector3(0, 0.4, -2.2)
 	rim.light_specular = 0.6
 	pivot.add_child(rim)
+	# faint hidden "street fill" so the cobbles at the courier's feet read
+	var foot := OmniLight3D.new()
+	foot.light_color = Color(1.0, 0.85, 0.7)
+	foot.light_energy = 0.45
+	foot.omni_range = 7.0
+	foot.omni_attenuation = 1.6
+	foot.light_specular = 0.15
+	foot.light_volumetric_fog_energy = 0.0
+	foot.position = Vector3(0, 2.6, 0)
+	add_child(foot)
 	_steps = AudioStreamPlayer3D.new()
 	_steps.stream = load("res://assets/slice/audio/step_wet.wav")
 	_steps.volume_db = -6.0
@@ -185,6 +195,20 @@ func _build_pack() -> void:
 		mi.position = spec[1]
 		mi.layers = 1 | 2
 		_pack.add_child(mi)
+	var logo := Label3D.new()
+	logo.text = "LIVRAISON"
+	logo.font = load("res://assets/slice/fonts/JosefinSans.ttf")
+	logo.font_size = 36
+	logo.pixel_size = 0.0019
+	logo.modulate = Color(0.95, 0.9, 0.8)
+	logo.outline_size = 0
+	logo.shaded = true
+	logo.double_sided = false
+	logo.line_spacing = -6
+	logo.position = Vector3(0, 0.0, -0.137)
+	logo.rotation.y = PI
+	logo.layers = 1 | 2
+	_pack.add_child(logo)
 
 func _update_pack() -> void:
 	var yaw_b := Basis(Vector3.UP, person.rotation.y)
@@ -485,6 +509,39 @@ func _animate(delta: float, dir: Vector3, mag: float) -> void:
 
 # ------------------------------------------------------------------ camera
 
+var _shoulder := 1.0
+var _probe_t := 0.0
+var _probe_x := 0.4
+
+func _clear_dist(from: Vector3, dir: Vector3, max_d: float) -> float:
+	var q := PhysicsRayQueryParameters3D.create(from, from + dir * max_d)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	return max_d if hit.is_empty() else from.distance_to(hit["position"])
+
+func _shoulder_room() -> float:
+	_probe_t -= get_process_delta_time()
+	if _probe_t > 0.0:
+		return _probe_x
+	_probe_t = 0.08
+	var right := pivot.global_transform.basis.x
+	right.y = 0
+	right = right.normalized()
+	var back := pivot.global_transform.basis.z
+	back.y = 0
+	back = back.normalized()
+	var o := pivot.global_position
+	# clearance to the side, and diagonally back where the lens will be
+	var r := minf(_clear_dist(o, right, 1.0), _clear_dist(o, (right + back).normalized(), 1.6) * 0.7)
+	var l := minf(_clear_dist(o, -right, 1.0), _clear_dist(o, (-right + back).normalized(), 1.6) * 0.7)
+	if _shoulder > 0.0 and r < 0.55 and l > r + 0.25:
+		_shoulder = -1.0
+	elif _shoulder < 0.0 and l < 0.55 and r > l + 0.25:
+		_shoulder = 1.0
+	var room := r if _shoulder > 0.0 else l
+	_probe_x = _shoulder * clampf(room - 0.35, 0.0, 0.42)
+	return _probe_x
+
 func _process(delta: float) -> void:
 	if active:
 		var look := Vector2(Input.get_joy_axis(0, JOY_AXIS_RIGHT_X), Input.get_joy_axis(0, JOY_AXIS_RIGHT_Y))
@@ -505,6 +562,9 @@ func _process(delta: float) -> void:
 	camera.fov = _fov
 	_arm_len = lerpf(_arm_len, 3.5 + 0.6 * spd_k, clampf(delta * 3.0, 0, 1))
 	arm.spring_length = _arm_len
+	# over-the-shoulder offset: the SpringArm only checks its own length, so
+	# probe the sideways offset too and swap shoulders / pull in near walls
+	arm.position.x = lerpf(arm.position.x, _shoulder_room(), clampf(delta * 6.0, 0, 1))
 	# trauma shake (squared for a soft falloff)
 	trauma = maxf(0.0, trauma - delta * 1.4)
 	_noise_t += delta * 18.0

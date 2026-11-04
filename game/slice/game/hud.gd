@@ -38,6 +38,7 @@ var _stamp: VBoxContainer
 var _stamp1: Label
 var _stamp2: Label
 var _stamp_tw: Tween
+var _pause: Control
 
 func _font(path: String) -> Font:
 	if path != UI_FONT:
@@ -260,6 +261,7 @@ void fragment() {
 
 	_build_title(root)
 	_build_summary(root)
+	_build_pause(root)
 	set_status(-1.0, "", 0, -1.0)
 	set_objective("", "", INK, -1.0, "")
 	set_condition(-1.0)
@@ -313,6 +315,11 @@ func _build_summary(root: Control) -> void:
 	_summary_text.scroll_active = false
 	_summary_text.add_theme_font_override("normal_font", _font(UI_FONT))
 	_summary_text.add_theme_font_size_override("normal_font_size", 24)
+	var bold := FontVariation.new()
+	bold.base_font = load(UI_FONT)
+	bold.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 700}
+	_summary_text.add_theme_font_override("bold_font", bold)
+	_summary_text.add_theme_font_size_override("bold_font_size", 26)
 	_summary_text.add_theme_color_override("default_color", INK)
 	var foot := _label("ENTRÉE — nouveau quart        ESPACE — balade libre", 20, Color(0.9, 0.9, 0.95))
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -323,6 +330,36 @@ func _build_summary(root: Control) -> void:
 	_summary.add_child(p)
 	_summary.visible = false
 	root.add_child(_summary)
+
+func _build_pause(root: Control) -> void:
+	_pause = Control.new()
+	_pause.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_pause.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var dim := ColorRect.new()
+	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.02, 0.02, 0.04, 0.55)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pause.add_child(dim)
+	var v := VBoxContainer.new()
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var h := _label("Pause", 96, Color(1.0, 0.93, 0.8), TITLE_FONT)
+	h.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var a := _label("ÉCHAP / START  —  reprendre", 26)
+	a.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var b := _label("T / SELECT  —  retour au titre", 26, Color(0.85, 0.85, 0.92))
+	b.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var k := _label("Maj sprint · Espace sauter · C plonger (attrape les voleurs) · Courir près des passants avec un colis : « Frôlé ! »\nVoitures : elles freinent, mais pas toujours à temps.", 18, Color(0.8, 0.8, 0.86, 0.85))
+	k.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	for c in [h, a, b, k]:
+		v.add_child(c)
+	_pause.add_child(v)
+	_pause.visible = false
+	root.add_child(_pause)
+
+func show_pause(on: bool) -> void:
+	_pause.visible = on
 
 # ------------------------------------------------------------------ API
 
@@ -337,12 +374,13 @@ func set_gameplay_visible(on: bool) -> void:
 		_cond_box.visible = false
 		_offers_box.visible = false
 
-func show_title(best: float, found: int, total: int) -> void:
+func show_title(best: float, found: int, total: int, medal: Array = []) -> void:
 	set_gameplay_visible(false)
 	_title.visible = true
 	_summary.visible = false
 	var rec := _title.find_child("Record", true, false) as Label
-	rec.text = ("Record : %.2f $" % best if best > 0.0 else "") + ("     Fleurs de lys : %d / %d" % [found, total])
+	rec.text = ("Record : %.2f $" % best if best > 0.0 else "") + ("   (médaille %s)" % medal[1] if not medal.is_empty() else "") \
+		+ ("     Fleurs de lys : %d / %d" % [found, total]) + "\nObjectifs : bronze 150 $ · argent 250 $ · or 350 $"
 	_map.visible = false
 
 func hide_overlays() -> void:
@@ -366,6 +404,11 @@ func show_summary(s: Dictionary, total: float, best: float, record: bool, found:
 	if s["fines"] > 0.0:
 		t += "Amendes : −%.2f $\n" % s["fines"]
 	t += "\n[font_size=44][color=#bff5bf]%.2f $[/color][/font_size]\n" % total
+	var med: Array = s.get("medal", [])
+	if not med.is_empty():
+		t += "[font_size=30][color=#%s]Médaille %s[/color][/font_size]\n" % [(med[2] as Color).to_html(false), med[1]]
+	else:
+		t += "[color=#b0b0b8]Bronze à 150 $ — encore %.0f $[/color]\n" % maxf(0.0, 150.0 - total)
 	t += ("[color=#ffd873]Nouveau record ![/color]" if record else "Record : %.2f $" % best) + "[/center]"
 	_summary_text.text = t
 
@@ -485,6 +528,9 @@ func float_text(pos: Vector3, text: String, col: Color) -> void:
 func alert(text: String) -> void:
 	_alert.text = text
 	_alert_t = 3.0 if text != "" else 0.0
+	if text != "" and _stamp_tw != null:
+		_stamp_tw.kill()
+		_stamp.modulate.a = 0.0
 
 func update_pointer(cam: Camera3D, targets: Array) -> void:
 	_pointer.cam = cam

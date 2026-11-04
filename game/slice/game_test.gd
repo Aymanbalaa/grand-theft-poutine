@@ -77,6 +77,15 @@ func _init() -> void:
 	check(float(game.get("cash")) > cash0 + 6.0, "paid %.2f $" % (float(game.get("cash")) - cash0))
 	check(stats["stars"] >= 3, "rated %d stars" % stats["stars"])
 
+	# pause freezes the shift clock
+	game.call("set_paused", true)
+	var t_paused: float = game.get("shift_t")
+	await frames(30)
+	check(paused and abs(float(game.get("shift_t")) - t_paused) < 0.001, "pause freezes the shift")
+	game.call("set_paused", false)
+	await frames(5)
+	check(not paused and float(game.get("shift_t")) < t_paused, "unpause resumes the clock")
+
 	# next offers arrive, and E still works as a fallback
 	for i in 300:
 		await process_frame

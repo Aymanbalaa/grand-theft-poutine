@@ -19,6 +19,7 @@ func _init() -> void:
 	for i in 5:
 		await process_frame
 	scene.get("game").call("start_free")
+	scene.get("traffic").call("set_enabled", false)
 	var player: Node3D = scene.get("player")
 	player.global_position = Vector3(1.2, 0.2, 24.0)
 	var fails := 0

@@ -31,6 +31,7 @@ func _init() -> void:
 	get_root().add_child(scene)
 	await frames(5)
 	scene.get("game").call("start_free")
+	scene.get("traffic").call("set_enabled", false)
 	player = scene.get("player")
 	# a long clear run down the crown of Saint-Paul, heading south (-Z)
 	player.global_position = Vector3(0.0, 0.2, 30.0)

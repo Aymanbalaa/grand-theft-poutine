@@ -20,6 +20,7 @@ const DROP_COL := Color(0.3, 0.85, 1.0)
 const THIEF_COL := Color(1.0, 0.25, 0.2)
 const REACH := 2.4
 const OFFER_LIFE := 40.0
+const MEDALS := [[350.0, "Or", Color(1.0, 0.82, 0.3)], [250.0, "Argent", Color(0.85, 0.88, 0.95)], [150.0, "Bronze", Color(0.85, 0.55, 0.3)]]
 const FLEURS := [
 	Vector3(-4.9, 0.85, 41.5), Vector3(4.9, 0.85, -104.0), Vector3(90.0, 0.85, -47.0),
 	Vector3(-90.0, 0.85, -57.0), Vector3(55.0, 0.75, -52.0), Vector3(-31.0, 0.85, -46.8),
@@ -73,7 +74,14 @@ func _sfx(name: String, vol := -4.0, pitch := 1.0) -> void:
 	ap.pitch_scale = pitch
 	ap.play()
 
+static func medal_for(total: float) -> Array:
+	for m in MEDALS:
+		if total >= m[0]:
+			return m
+	return []
+
 func setup(w: Node) -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS   # keeps the pause menu alive
 	world = w
 	player = w.get("player")
 	peds = w.get("peds")
@@ -111,13 +119,20 @@ func setup(w: Node) -> void:
 
 # ------------------------------------------------------------------ flow
 
+func _attract(on: bool) -> void:
+	if world.has_method("set_attract"):
+		world.call("set_attract", on)
+
 func show_title() -> void:
 	state = "title"
+	_attract(true)
 	player.active = false
 	_clear_jobs()
-	hud.show_title(save_data["best"], save_data["fleurs"].size(), FLEURS.size())
+	var mi := int(save_data.get("medal", 99))
+	hud.show_title(save_data["best"], save_data["fleurs"].size(), FLEURS.size(), MEDALS[mi] if mi < MEDALS.size() else [])
 
 func start_shift() -> void:
+	_attract(false)
 	state = "shift"
 	shift_t = SHIFT_LEN
 	cash = 0.0
@@ -135,6 +150,7 @@ func start_shift() -> void:
 		world.call("set_shift_progress", 0.0)
 
 func start_free() -> void:
+	_attract(false)
 	state = "free"
 	player.active = true
 	_clear_jobs()
@@ -149,10 +165,17 @@ func end_shift() -> void:
 	peds.give_up_thief()
 	var total := cash
 	var record := total > float(save_data["best"])
+	var med := medal_for(total)
+	stats["medal"] = med
+	if not med.is_empty():
+		var rank := MEDALS.find(med)
+		var prev := int(save_data.get("medal", 99))
+		save_data["medal"] = mini(rank, prev)
 	if record:
 		save_data["best"] = total
 	save_data["shifts"] = int(save_data.get("shifts", 0)) + 1
 	_save()
+	_attract(true)
 	_sfx("end")
 	hud.show_summary(stats, total, save_data["best"], record, save_data["fleurs"].size(), FLEURS.size())
 
@@ -164,15 +187,42 @@ func _clear_jobs() -> void:
 		m.visible = false
 	player.set_carrying(false)
 
+func set_paused(on: bool) -> void:
+	if on == get_tree().paused or state not in ["shift", "free"]:
+		return
+	get_tree().paused = on
+	hud.show_pause(on)
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if on else Input.MOUSE_MODE_CAPTURED
+
 func _unhandled_input(e: InputEvent) -> void:
 	var start := false
 	var free := false
+	var pause := false
+	var quit_title := false
 	if e is InputEventKey and e.pressed and not e.echo:
 		start = e.keycode == KEY_ENTER or e.keycode == KEY_KP_ENTER
 		free = e.keycode == KEY_SPACE
+		pause = e.keycode == KEY_ESCAPE or e.keycode == KEY_P
+		quit_title = e.keycode == KEY_T
 	elif e is InputEventJoypadButton and e.pressed:
 		start = e.button_index == JOY_BUTTON_START
 		free = e.button_index == JOY_BUTTON_BACK
+		pause = start and state in ["shift", "free"]
+		quit_title = free and get_tree().paused
+	if get_tree().paused:
+		if pause:
+			set_paused(false)
+		elif quit_title:
+			get_tree().paused = false
+			hud.show_pause(false)
+			peds.give_up_thief()
+			show_title()
+		get_viewport().set_input_as_handled()
+		return
+	if pause and state in ["shift", "free"]:
+		set_paused(true)
+		get_viewport().set_input_as_handled()
+		return
 	if start and state in ["title", "summary", "free"]:
 		start_shift()
 		get_viewport().set_input_as_handled()
@@ -375,7 +425,6 @@ func _deliver() -> void:
 	player.handoff()
 	hud.stamp("LIVRÉ !" if on_time else "En retard…", "+%.2f $   %s" % [pay, "★".repeat(stars) + "☆".repeat(5 - stars)],
 		Color(0.6, 1.0, 0.6) if on_time else Color(1.0, 0.6, 0.4))
-	hud.float_text(order["home"]["pos"] + Vector3.UP * 2.0, "+%.2f $" % pay, Color(0.6, 1.0, 0.6) if on_time else Color(1.0, 0.6, 0.4))
 	if on_time and combo > 1:
 		hud.toast("Série x%d  —  pourboires x%.2f" % [combo, 1.0 + 0.25 * (combo - 1)], Color(1.0, 0.85, 0.4))
 	_sfx("cash" if on_time else "fail")
@@ -462,6 +511,8 @@ func _collect_fleur(i: int) -> void:
 # ------------------------------------------------------------------ tick
 
 func _process(delta: float) -> void:
+	if get_tree().paused:
+		return
 	var cam: Camera3D = world.call("active_camera")
 	if state in ["shift", "free"]:
 		var ppos := player.global_position
