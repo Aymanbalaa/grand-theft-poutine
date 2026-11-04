@@ -20,6 +20,8 @@ const DROP_COL := Color(0.3, 0.85, 1.0)
 const THIEF_COL := Color(1.0, 0.25, 0.2)
 const REACH := 2.4
 const OFFER_LIFE := 40.0
+const BARKS := ["Hé !", "Attention !", "Voyons donc !", "Regarde où tu vas !", "Excusez !", "Coudonc !", "Wô !"]
+const THANKS := ["Merci !", "Merci beaucoup !", "Enfin !", "Bonne soirée !", "Parfait, merci !"]
 const MEDALS := [[400.0, "Or", Color(1.0, 0.82, 0.3)], [275.0, "Argent", Color(0.85, 0.88, 0.95)], [175.0, "Bronze", Color(0.85, 0.55, 0.3)]]
 const FLEURS := [
 	Vector3(-4.9, 0.85, 41.5), Vector3(4.9, 0.85, -104.0), Vector3(90.0, 0.85, -47.0),
@@ -423,6 +425,8 @@ func _deliver() -> void:
 		stars = clampi(1 + int(round(cond * 2.0)) + (2 if frac > 0.4 else (1 if frac > 0.15 else 0)), 1, 5)
 	stats["stars"] += stars
 	player.handoff()
+	peds.doorstep(order["home"]["pos"], order["home"]["outward"])
+	hud.float_text(order["home"]["pos"] + Vector3.UP * 2.1, THANKS[rng.randi() % THANKS.size()] if on_time else "Il était temps…", Color(0.95, 0.92, 0.85))
 	hud.stamp("LIVRÉ !" if on_time else "En retard…", "+%.2f $   %s" % [pay, "★".repeat(stars) + "☆".repeat(5 - stars)],
 		Color(0.6, 1.0, 0.6) if on_time else Color(1.0, 0.6, 0.4))
 	if on_time and combo > 1:
@@ -472,6 +476,7 @@ func on_hit_by_car(dir: Vector3, speed: float) -> void:
 
 func _on_thief_caught(pos: Vector3) -> void:
 	_chase_t = 0.0
+	_slowmo(0.3, 0.35)
 	_sfx("cash")
 	player.add_trauma(0.35)
 	hud.float_text(pos + Vector3.UP * 1.8, "Arrêté !", Color(0.6, 1.0, 0.6))
@@ -483,6 +488,14 @@ func _on_thief_caught(pos: Vector3) -> void:
 		hud.stamp("Voleur arrêté !", "Merci !", Color(0.6, 1.0, 0.6))
 	hud.alert("")
 	_thief_t = rng.randf_range(65.0, 100.0)
+
+# Brief time dip for impact (real-time timer so it always recovers).
+func _slowmo(scale: float, secs: float) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	Engine.time_scale = scale
+	await get_tree().create_timer(secs, true, false, true).timeout
+	Engine.time_scale = 1.0
 
 func _on_thief_escaped() -> void:
 	if state not in ["shift", "free"]:
@@ -557,6 +570,7 @@ func _tick_contact(delta: float, ppos: Vector3) -> void:
 	if _bump_cd <= 0.0 and peds.check_bump(ppos, sp, player.rolling()):
 		_bump_cd = 0.8
 		player.add_trauma(0.3)
+		hud.float_text(peds.last_bump_pos + Vector3.UP * 2.0, BARKS[rng.randi() % BARKS.size()], Color(1.0, 0.75, 0.6))
 		if carrying:
 			_damage(0.18, "Bousculade !")
 		else:

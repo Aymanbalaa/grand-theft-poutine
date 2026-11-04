@@ -181,8 +181,10 @@ func _resume(w: Dictionary) -> void:
 	if w["umbrella"] != null:
 		(w["umbrella"] as Node3D).visible = true
 
+var last_bump_pos := Vector3.INF
+
 # A running (or diving) player body-checks walkers. Returns true when someone
-# was knocked.
+# was knocked (their position is left in last_bump_pos).
 func check_bump(pos: Vector3, speed: float, diving := false) -> bool:
 	if speed < 3.6 and not diving:
 		return false
@@ -196,8 +198,21 @@ func check_bump(pos: Vector3, speed: float, diving := false) -> bool:
 				w["timer"] = 1.6 if diving else 1.2
 				p.play("hit" if p.clips.has("hit") else "idle", 0.08)
 				p.position += d.normalized() * (0.9 if diving else 0.5)
+				last_bump_pos = p.global_position
 				return true
 	return false
+
+# A resident steps out of the door to take a delivery, waves, and goes back in.
+func doorstep(pos: Vector3, outward: Vector3) -> void:
+	var p := SlicePerson.new()
+	add_child(p)
+	p.setup(IDS[rng.randi() % IDS.size()], rng.randf_range(1.62, 1.82))
+	p.position = Vector3(pos.x, pos.y, pos.z) - outward * 0.25
+	p.rotation.y = atan2(outward.x, outward.z)
+	p.play("wave", 0.1)
+	await get_tree().create_timer(2.4).timeout
+	if is_instance_valid(p):
+		p.queue_free()
 
 # Sprinting close past people without touching them. Returns how many walkers
 # were newly grazed (each walker counts once per few seconds).
