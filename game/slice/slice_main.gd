@@ -356,6 +356,7 @@ const COMMUNE_X := 46.0
 
 # Doors for the delivery game: {pos, kind ("shop"/"home"), name, street, number, item}
 var doors: Array[Dictionary] = []
+var _footprints: Array = []      # [Transform3D, size] of every building's collision box
 var _street_numbers := {}
 var _bollard_kit := MeshKit.new()
 
@@ -570,7 +571,10 @@ func _build_row(from: Vector3, to: Vector3, outward: Vector3, street: String, sh
 		var bm := _building_mats(FRAME_COLS[rng.randi() % FRAME_COLS.size()],
 			CORNICE_COLS[rng.randi() % CORNICE_COLS.size()],
 			shop["sign"] if shop != null else Color(0.1, 0.1, 0.1), awn_col)
-		add_child(b.make_node(bm, "Bldg_%d" % get_child_count()))
+		var bnode := b.make_node(bm, "Bldg_%d" % get_child_count())
+		add_child(bnode)
+		for cs in bnode.find_children("*", "CollisionShape3D", true, false):
+			_footprints.append([(cs as CollisionShape3D).global_transform, ((cs as CollisionShape3D).shape as BoxShape3D).size])
 		for l in b.lights:
 			_lamp_lights.append(l as Light3D)
 		if lanterns:
@@ -640,10 +644,33 @@ func _build_buildings() -> void:
 		_build_row(Vector3(side * (CROSS_X + 0.2), 0, cn + 12.0), Vector3(side * (CROSS_X + 0.2), 0, cs - 12.0), Vector3(-side, 0, 0), sv, [], 0.0, 0.0, true, 11.0, 13.0)
 		_build_row(Vector3(side * (COMMUNE_X + 0.2), 0, END_Z), Vector3(side * (COMMUNE_X + 0.2), 0, MARKET_Z), Vector3(-side, 0, 0), co, [], 0.0, 0.0, false, 12.0, 12.0)
 	_ghost_signs()
+	_drop_buried_doors()
 	var bmi := MeshInstance3D.new()
 	bmi.name = "Bollards"
 	bmi.mesh = _bollard_kit.commit({"metal": mats["metal"]})
 	add_child(bmi)
+
+# Closing buildings span past the street to cover the corners, so a door can
+# land behind a neighbouring building. Drop any door standing inside another
+# building's footprint (it would be an undeliverable address).
+func _drop_buried_doors() -> void:
+	var keep: Array[Dictionary] = []
+	for d in doors:
+		var p: Vector3 = d["pos"] + Vector3.UP * 0.8
+		var buried := false
+		for f in _footprints:
+			var local: Vector3 = (f[0] as Transform3D).affine_inverse() * p
+			var half: Vector3 = (f[1] as Vector3) * 0.5
+			if abs(local.x) < half.x + 0.3 and abs(local.y) < half.y and abs(local.z) < half.z + 0.3:
+				buried = true
+				break
+		# and it must open onto one of the three streets, not a slot between buildings
+		var on_street: bool = (abs(p.x) < FACE_X + 0.9 and p.z < 45.0 and p.z > END_Z) \
+			or (abs(p.z - CROSS_C) < (CROSS_Z.x - CROSS_C) + 0.9 and abs(p.x) < CROSS_X + 0.5) \
+			or (p.z < END_Z + 0.5 and p.z > MARKET_Z - 0.5 and abs(p.x) < COMMUNE_X + 0.5)
+		if not buried and on_street:
+			keep.append(d)
+	doors = keep
 
 # Faded painted advertisements on the blank party walls facing rue Saint-Vincent.
 func _ghost_signs() -> void:

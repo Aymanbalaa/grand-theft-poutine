@@ -17,22 +17,36 @@ No missions (yet). The game *is* the city: real street grid, real street names, 
 
 ## New: *Nuit de livraison* — the first game mode
 
-The slice is now a game. You're an on-foot courier working a 6-minute rainy evening shift in Old Montréal.
+The slice is now a game. You're an on-foot courier working a 6-minute rainy evening shift in Old Montréal, from blue hour into night.
 
 | | |
 |---|---|
-| ![Title screen](docs/screenshots/game_title.png) | ![Pickup: follow the amber beam](docs/screenshots/game_pickup.png) |
-| ![Delivering: order timer, bag condition, minimap](docs/screenshots/game_dropoff.png) | ![Crossroads of rue Saint-Paul and rue Saint-Vincent](docs/screenshots/slice_corner.png) |
+| ![Title over the cinematic tour](docs/screenshots/game_title.png) | ![Two offers at once: pick one by running into its beam](docs/screenshots/game_pickup.png) |
+| ![Delivering: order timer, bag condition, route on the minimap](docs/screenshots/game_dropoff.png) | ![LIVRÉ ! stamp and star rating](docs/screenshots/game_delivered.png) |
 
-- **Deliver**: orders pop up from the quarter's 24 shops (*trois poutines*, *un bouquet de pivoines*, *une caisse de vinyles*...) for its 52 street addresses. Pick up at the amber beam, deliver to the cyan one, and press **E** at the door.
-- **Get paid**: base pay grows with distance. Tips scale with time left and bag condition. On-time streaks multiply tips, express orders pay double tips on a tighter clock, and the clock tightens as the shift goes on.
-- **Don't wreck the bag**: running into pedestrians or rolling with the bag damages it, and fragile items (wine, vinyl, art) suffer more. Punching passers-by costs a fine.
-- **Au voleur !** Pickpockets strike now and then. They sprint through the street graph away from you; punch or roll into them for a reward before they lose you.
-- **Explore**: 12 gilt fleurs-de-lys are hidden around the quarter, saved across sessions along with your best shift.
-- **The quarter**: rue Saint-Paul, a full rue Saint-Vincent crossing it, and rue de la Commune along the Marché Bonsecours, all sealed by closing buildings. It has blue enamel house numbers, faded painted ads on party walls, and about 34 pedestrians.
-- **Interface**: HUD with cash and clock, an objective card with order timer, an edge-of-screen target pointer, a minimap, and title and end-of-shift screens. Sound cues (order ping, cash chime, police whistle...) are synthesized.
+- **Choose your job**: two offers light up at once as beams at their shops: amber for regular, rose for express. Each card shows the item, the destination street, the route length and an estimated pay. Run into either beam to take that job; the other one lapses. Pickup and drop-off happen as soon as you arrive (**E** also works).
+- **Move like a courier**: you jog by default and sprint with **Shift** on a 5-second stamina bar (empty it and you're winded until it refills to 35 %). **Space** jumps, with coyote time and input buffering. **C**, **Ctrl** or right-click dives. Acceleration is quick, reversals plant and push off, and you lean into turns. Gamepad works too: left stick, RT sprint, A jump, B dive, X shove, Y interact, Start for a shift or pause.
+- **Get paid**: base pay grows with the route length along the street graph. Tips scale with time left and bag condition. On-time streaks multiply tips, express orders pay double tips on a tighter clock, and the clock tightens as the shift goes on. The last 8 seconds tick. Each drop-off gets a 1–5 star rating.
+- **Weave, don't bump**: sprinting close past people while carrying pays small *Frôlé !* style tips that chain. Bumping them, diving with the bag, hard landings and cars all damage it, and fragile items (wine, vinyl, art) suffer more. Shoving passers-by costs a fine.
+- **Traffic**: cars nose through one-way rue Saint-Paul and rue Saint-Vincent and two-way rue de la Commune. They brake for anyone in the lane and honk at a courier blocking them. Step out too late and they clip you. Headlights and brake lamps reflect on the wet cobbles.
+- **Au voleur !** Pickpockets strike now and then. They run the street graph away from you in bursts and tire in between. Sprint them down, then dive or shove for a 25 $ reward.
+- **Goals**: bronze 175 $, silver 275 $ and gold 400 $ medals, plus your best shift, saved. Twelve gilt fleurs-de-lys are hidden around the quarter.
+- **Interface**: HUD with cash, clock, streak, offer cards, an order timer, bag and stamina bars, a centred *LIVRÉ !* stamp, floating world text, a hit flash, edge-of-screen pointers to every target, and a minimap with the walking route and the cars. The title and end-of-shift screens play over the cinematic tour. **Esc** pauses.
+- **Sound**: a synthesized late-night jazz loop (Rhodes, upright bass, brushes) under the rain, plus synthesized cues: order ping, cash chime, police whistle, car horn, near-miss whoosh, countdown tick.
+- **The courier**: a red jacket and an insulated *LIVRAISON* backpack whose status strip glows while an order is inside. The camera swaps shoulders and pulls in near walls, widens its FOV at a sprint and shakes on impacts.
 
-Run `play_slice.bat` and press **Enter** for a shift or **Space** for free roam. Gameplay gate (headless): `SLICE_SAVE=user://test_save.json tools/godot/godot_console.exe --headless --fixed-fps 60 --path game --script res://slice/game_test.gd` → `GAME OK`.
+Run `play_slice.bat` and press **Enter** for a shift or **Space** for free roam.
+
+Gates (headless, `tools/godot/godot_console.exe --headless --fixed-fps 60 --path game --script res://slice/<gate>.gd`):
+
+| Gate | Checks | Pass line |
+|---|---|---|
+| `game_test.gd` (with `SLICE_SAVE=user://test_save.json`) | street-graph routes, two offers, walk-in pickup, auto delivery, pay and stars, pause, car hit, thief, fleur, end of shift, save | `GAME OK` |
+| `move_test.gd` | jog and sprint speeds, stamina drain, winded state and regen, jump apex and air time, dive burst, reversal time, clean stop | `MOVE OK` |
+| `traffic_test.gd` | cars move, stop short of a courier in the lane, wait and honk, pull away, clip a late step-out | `TRAFFIC OK` |
+| `walk_test.gd` | real-input walk across kerbs and sidewalk ends on all three streets | `WALK OK` |
+| `doors_test.gd` | walks up to every one of the 70 delivery doors with real input | `DOORS OK` |
+| `bot_test.gd` (with `SLICE_SAVE=user://bot_save.json`) | a bot plays a whole shift on real input; every door it's sent to must be reached (baseline: 11 deliveries, about 326 $) | `BOT OK` |
 
 ## New: the Rue Saint-Paul vertical slice
 
@@ -51,7 +65,7 @@ One hand-dressed Old-Montréal street at blue hour, just after rain. It's the ne
 - **~60 fps at 1080p** on an RX 6700S laptop (High preset; F5 cycles Medium/High/Ultra). Only the 5 lamps nearest the camera render shadow maps.
 
 Run it: `.venv/Scripts/python -m pipeline.slice_assets` once (fetches the gitignored CC0 assets, hash-verified), then `play_slice.bat`.
-Controls: WASD walk · Shift run · Space roll · LMB punch · E wave · V fly-cam · Tab cinematic tour · 1/2/3 mood · R rain · F5 quality · H help.
+Controls: WASD run · Shift sprint · Space jump · C/RMB dive · LMB shove · Alt walk · E interact · Esc pause · V fly-cam · Tab cinematic tour · F1–F3 mood · R rain · F5 quality · H help.
 Screenshots: `tools/godot/godot_console.exe --path game --resolution 1920x1080 --script res://slice/shots.gd`. Fly-through video: `... res://slice/slice.tscn --write-movie out.avi --fixed-fps 30 -- --tour`.
 
 ## How it works
@@ -82,6 +96,7 @@ HRDEM elevation ┘     offline, deterministic     glTF tiles         runtime
 - [x] **M8** — Realism Graphics I: procedural sky/water/terrain shaders (fbm clouds & sun disc, analytic waves, grass/dirt/rock blend + dirt paths), CC0 wall/road/sidewalk textures with per-building facade variation, 16,498 OSM trees & 21 benches via a pooled MultiMesh prop renderer, white-car colormap fix
 - [x] **M9** — Realism Graphics II: warm sun/shadow/fog grade (shadow reach, contrast/saturation grade, volumetric night fog), crosswalks & manhole decals & ground-floor doors, fake window interiors & camera-near grass, CC0 player model, storefront awnings, lamp-colormap safety net
 - [x] **Game** — *Nuit de livraison*: courier shifts (orders, timers, tips, streaks, express), pickpocket chases, hidden fleurs-de-lys, HUD/minimap/pointer, saves; the quarter expanded to three streets
+- [x] **Game II** — mechanics rework: courier movement (jog/sprint/stamina, jump, dive, gamepad), two-offer choice with walk-in pickup, near-miss tips, live traffic, medals, pause, attract-mode title, music; shift bot gate
 - [x] **Slice** — Rue Saint-Paul vertical slice: procedural Old-Montréal facades with interior-mapped windows, rain-wet cobbles, lamps, pedestrians, a third-person player, ~60 fps (new visual bar; see above)
 - [x] **M10a** — Traffic: pipeline exports a road + sidewalk nav graph (`nav.json`, tiles byte-identical); 40 pooled cars drive real lanes on the right, queue at real signal positions, yield at junctions, brake for you, and collide with your car; pooled headlights at night
 

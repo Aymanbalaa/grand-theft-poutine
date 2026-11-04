@@ -120,7 +120,7 @@ func _ready() -> void:
 		(vi as VisualInstance3D).layers = 1 | 2
 	var fill := OmniLight3D.new()
 	fill.light_cull_mask = 2
-	fill.light_color = Color(0.75, 0.8, 1.0)
+	fill.light_color = Color(0.95, 0.88, 0.82)
 	fill.light_energy = 0.55
 	fill.omni_range = 7.0
 	fill.position = Vector3(0, 0.6, 2.5)
@@ -185,8 +185,8 @@ func _build_pack() -> void:
 	_pack_glow.emission_enabled = true
 	_pack_glow.emission = Color(1.0, 0.62, 0.2)
 	_pack_glow.emission_energy_multiplier = 0.0
-	for spec in [[Vector3(0.44, 0.46, 0.27), Vector3.ZERO, body], [Vector3(0.452, 0.05, 0.282), Vector3(0, 0.08, 0), band],
-			[Vector3(0.3, 0.035, 0.012), Vector3(0, -0.12, -0.14), _pack_glow], [Vector3(0.46, 0.06, 0.29), Vector3(0, 0.235, 0), body]]:
+	for spec in [[Vector3(0.4, 0.44, 0.25), Vector3.ZERO, body], [Vector3(0.412, 0.05, 0.262), Vector3(0, 0.08, 0), band],
+			[Vector3(0.28, 0.035, 0.012), Vector3(0, -0.12, -0.13), _pack_glow], [Vector3(0.42, 0.06, 0.27), Vector3(0, 0.225, 0), body]]:
 		var mi := MeshInstance3D.new()
 		var bm := BoxMesh.new()
 		bm.size = spec[0]
@@ -197,7 +197,10 @@ func _build_pack() -> void:
 		_pack.add_child(mi)
 	var logo := Label3D.new()
 	logo.text = "LIVRAISON"
-	logo.font = load("res://assets/slice/fonts/JosefinSans.ttf")
+	var lf := FontVariation.new()
+	lf.base_font = load("res://assets/slice/fonts/JosefinSans.ttf")
+	lf.variation_opentype = {TextServerManager.get_primary_interface().name_to_tag("wght"): 700}
+	logo.font = lf
 	logo.font_size = 36
 	logo.pixel_size = 0.0019
 	logo.modulate = Color(0.95, 0.9, 0.8)
@@ -205,7 +208,7 @@ func _build_pack() -> void:
 	logo.shaded = true
 	logo.double_sided = false
 	logo.line_spacing = -6
-	logo.position = Vector3(0, 0.0, -0.137)
+	logo.position = Vector3(0, 0.0, -0.127)
 	logo.rotation.y = PI
 	logo.layers = 1 | 2
 	_pack.add_child(logo)
@@ -218,14 +221,14 @@ func _update_pack() -> void:
 	# lean forward with speed, roll with the body lean
 	var tilt := Basis(Vector3.RIGHT, clampf(horizontal_speed() / SPRINT, 0.0, 1.0) * 0.22) * Basis(Vector3.FORWARD, _lean)
 	var b := yaw_b * tilt
-	_pack.global_transform = Transform3D(b, anchor + yaw_b * Vector3(0, -0.02, -0.27))
+	_pack.global_transform = Transform3D(b, anchor + yaw_b * Vector3(0, -0.07, -0.2))
 
 func set_carrying(on: bool) -> void:
 	_pack_glow.emission_energy_multiplier = 3.0 if on else 0.0
 
 func _make_splash() -> GPUParticles3D:
 	var p := GPUParticles3D.new()
-	p.amount = 40
+	p.amount = 28
 	p.lifetime = 0.45
 	p.local_coords = false
 	p.emitting = false
@@ -241,12 +244,23 @@ func _make_splash() -> GPUParticles3D:
 	pm.scale_max = 1.0
 	p.process_material = pm
 	var q := QuadMesh.new()
-	q.size = Vector2(0.03, 0.05)
+	q.size = Vector2(0.035, 0.035)
 	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	m.albedo_color = Color(0.8, 0.85, 0.95, 0.35)
+	m.albedo_color = Color(0.75, 0.8, 0.88, 0.22)
+	m.roughness = 0.1
 	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	var dot := GradientTexture2D.new()
+	var g := Gradient.new()
+	g.set_color(0, Color(1, 1, 1, 1))
+	g.set_color(1, Color(1, 1, 1, 0))
+	dot.gradient = g
+	dot.fill = GradientTexture2D.FILL_RADIAL
+	dot.fill_from = Vector2(0.5, 0.5)
+	dot.fill_to = Vector2(0.5, 0.0)
+	dot.width = 32
+	dot.height = 32
+	m.albedo_texture = dot
 	q.material = m
 	p.draw_pass_1 = q
 	p.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
